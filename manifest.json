@@ -1,0 +1,52 @@
+{
+  "name": "AEGIS Central Control & Tracking Dispatcher",
+  "short_name": "AEGIS Dispatcher",
+  "description": "Unified, frictionless central command dispatcher for logging notes, tasks, calories, journals, receipts, groceries, and planner items.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#121214",
+  "theme_color": "#10b981",
+  "scope": "./",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Note",
+      "short_name": "Note",
+      "description": "Dispatch a quick note entry",
+      "url": "./index.html?prefix=/note"
+    },
+    {
+      "name": "New Task",
+      "short_name": "Task",
+      "description": "Dispatch a new task entry",
+      "url": "./index.html?prefix=/task"
+    },
+    {
+      "name": "Log Calories",
+      "short_name": "Calories",
+      "description": "Dispatch food or macro log",
+      "url": "./index.html?prefix=/calories"
+    },
+    {
+      "name": "Journal Entry",
+      "short_name": "Journal",
+      "description": "Dispatch a personal journal entry",
+      "url": "./index.html?prefix=/journal"
+    }
+  ]
+}

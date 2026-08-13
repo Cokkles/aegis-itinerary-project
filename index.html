@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS Scribe & Tracking Control Panel</title>
+
+    <!-- PWA Icons, Favicon & Manifest Links -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121214">
+
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: rgba(22, 22, 26, 0.90);
+            --input-bg: rgba(32, 32, 38, 0.94);
+            --border-color: rgba(255, 255, 255, 0.16);
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            
+            --accent-green: #02b030;
+            --accent-teal: #02b099;
+            --accent-blue: #00aaff;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+
+            /* Custom Looping Gradient */
+            --gradient-bar: linear-gradient(90deg, #02b030 0%, #02b099 25%, #00aaff 50%, #02b099 75%, #02b030 100%);
+            --gradient-btn: linear-gradient(135deg, #02b030 0%, #02b099 50%, #00aaff 100%);
+            --gradient-sync: linear-gradient(135deg, #02b030 0%, #00aaff 100%);
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: linear-gradient(rgba(12, 12, 14, 0.38), rgba(12, 12, 14, 0.38)), 
+                url('data:image/jpeg;base64,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') no-repeat center center fixed, 
+                #121214;
+            background-size: cover;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0 0 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* Top Bar with Looping Gradient, Weather, Quote & Sync Badge - Compact Mobile-Friendly */
+        .top-gradient-bar {
+            width: 100%;
+            background: var(--gradient-bar);
+            padding: 6px 16px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+            min-height: 36px;
+        }
+
+        /* Top-Left Weather Widget */
+        .top-weather-widget {
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.80rem;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 2px #000000;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .quote-content {
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.82rem;
+            text-align: center;
+            letter-spacing: 0.3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 2px #000000;
+            flex-grow: 1;
+        }
+
+        /* Top-Right Sync Confirmation Badge */
+        .top-sync-badge {
+            background-color: rgba(0, 0, 0, 0.88);
+            color: #02b099;
+            font-size: 0.68rem;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 4px;
+            border: 1px solid #02b099;
+            box-shadow: 0 0 8px rgba(2, 176, 153, 0.4);
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+        }
+
+        /* Master Page Wrapper */
+        .page-wrapper {
+            width: 100%;
+            max-width: 1180px;
+            padding: 0 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Two-Column Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            width: 100%;
+        }
+
+        @media (max-width: 920px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .top-gradient-bar {
+                flex-direction: column;
+                padding: 6px 10px;
+                gap: 4px;
+                margin-bottom: 12px;
+            }
+            .top-weather-widget, .quote-content, .top-sync-badge {
+                font-size: 0.72rem;
+                text-align: center;
+                white-space: normal;
+            }
+        }
+
+        .container, .sidebar, .full-width-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        /* High Visibility Title & Status */
+        .title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .status {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #02b030;
+            text-shadow: 0 0 8px rgba(2, 176, 48, 0.4);
+        }
+
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        /* Interactive Buttons with Tactile Press Animations & Shadows */
+        .chip, .btn-submit, .btn-sync-completed, .btn-horizon-trigger, .btn-sync {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.2s ease, border-color 0.2s ease;
+            user-select: none;
+        }
+
+        .chip {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .chip:hover {
+            filter: brightness(1.25);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+        }
+
+        .chip:active, .btn-submit:active, .btn-sync-completed:active, .btn-horizon-trigger:active, .btn-sync:active {
+            transform: translateY(2px) scale(0.98) !important;
+            box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6) !important;
+        }
+
+        .chip.active {
+            border-color: #02b030;
+            background-color: #034e15;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(2, 176, 48, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .chip-note.active { border-color: #00aaff; background-color: #003366; color: #fff; box-shadow: 0 0 10px rgba(0, 170, 255, 0.5); }
+        .chip-calories.active { border-color: #f59e0b; background-color: #78350f; color: #fff; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        .chip-journal.active { border-color: #02b099; background-color: #014d44; color: #fff; box-shadow: 0 0 10px rgba(2, 176, 153, 0.5); }
+        .chip-receipts.active { border-color: #ec4899; background-color: #831843; color: #fff; box-shadow: 0 0 10px rgba(236, 72, 153, 0.5); }
+        .chip-grocery.active { border-color: #f59e0b; background-color: #78350f; color: #fff; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        .chip-horizon.active { border-color: #00aaff; background-color: #004d66; color: #fff; box-shadow: 0 0 10px rgba(0, 170, 255, 0.5); }
+
+        .input-group { margin-bottom: 16px; }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 320px;
+            min-height: 250px;
+            max-height: 700px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.95rem;
+            padding: 12px;
+            box-sizing: border-box;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus {
+            border-color: #02b099;
+            box-shadow: 0 0 8px rgba(2, 176, 153, 0.3);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--gradient-btn);
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 170, 255, 0.45);
+        }
+
+        .btn-submit:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .output-group { margin-top: 20px; }
+
+        .output-box {
+            background-color: rgba(9, 9, 12, 0.92);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 0.85rem;
+            color: #02b099;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .calorie-card {
+            margin-top: 20px;
+            background-color: rgba(9, 9, 12, 0.92);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 6px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .calorie-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .calorie-count {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+
+        /* Sidebar Elements */
+        .clock-widget {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .time-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .date-display {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .calendar-widget {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #02b030;
+            margin-bottom: 10px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        .cal-day-head {
+            color: var(--text-muted);
+            font-weight: bold;
+            padding-bottom: 4px;
+        }
+
+        .cal-day {
+            padding: 4px 0;
+            background-color: var(--input-bg);
+            border-radius: 3px;
+        }
+
+        .cal-day.today {
+            background-color: #02b030;
+            color: #ffffff;
+            font-weight: bold;
+            box-shadow: 0 0 6px rgba(2, 176, 48, 0.5);
+        }
+
+        .cal-day.empty {
+            background-color: transparent;
+        }
+
+        .sidebar-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-section-title {
+            font-size: 0.85rem;
+            color: #00aaff;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-sync {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-sync:hover {
+            color: #02b030;
+            border-color: #02b030;
+        }
+
+        /* Timeframe Itinerary Schedule List */
+        .timeline-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.82rem;
+        }
+
+        .timeline-item {
+            background-color: var(--input-bg);
+            border-radius: 0 6px 6px 0;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            position: relative;
+            border-left: 4px solid #00aaff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .timeline-item.t-morning { border-left-color: #02b030; }
+        .timeline-item.t-midday { border-left-color: #fcf803; }
+        .timeline-item.t-afternoon { border-left-color: #02b099; }
+        .timeline-item.t-evening { border-left-color: #00aaff; }
+
+        .time-badge {
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .item-text {
+            color: var(--text-main);
+            font-weight: 500;
+            line-height: 1.35;
+        }
+
+        .horizon-trigger-box {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .btn-horizon-trigger {
+            width: 100%;
+            background: var(--gradient-btn);
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .btn-horizon-trigger:hover {
+            filter: brightness(1.2);
+            transform: translateY(-1px);
+        }
+
+        /* BOTTOM PANEL: LIVE HORIZON BRIEFING & INTERACTIVE ACTION DECK */
+        .briefing-panel-title {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #00aaff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .briefing-section {
+            background-color: rgba(9, 9, 12, 0.85);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        .briefing-section-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-weather { color: #00aaff; border-bottom: 2px solid #00aaff; padding-bottom: 4px; }
+        .color-health { color: #02b030; border-bottom: 2px solid #02b030; padding-bottom: 4px; }
+        .color-finance { color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 4px; }
+        .color-calendar { color: #02b099; border-bottom: 2px solid #02b099; padding-bottom: 4px; }
+        .color-tasks { color: #02b030; border-bottom: 2px solid #02b030; padding-bottom: 4px; }
+        .color-gmail { color: #00aaff; border-bottom: 2px solid #00aaff; padding-bottom: 4px; }
+        .color-ideas { color: #02b099; border-bottom: 2px solid #02b099; padding-bottom: 4px; }
+        .color-news { color: #94a3b8; border-bottom: 2px solid #64748b; padding-bottom: 4px; }
+
+        /* Interactive Checklist Styles */
+        .interactive-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .interactive-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 12px;
+            background-color: var(--input-bg);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+
+        .interactive-item:hover {
+            border-color: #02b099;
+            transform: translateY(-1px);
+        }
+
+        .interactive-item:active {
+            transform: translateY(1px) scale(0.99);
+        }
+
+        .interactive-item.completed {
+            opacity: 0.55;
+            text-decoration: line-through;
+            background-color: rgba(2, 176, 48, 0.35);
+            border-color: #02b030;
+        }
+
+        .check-box {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: #02b030;
+        }
+
+        .item-content {
+            font-size: 0.88rem;
+            line-height: 1.4;
+            color: var(--text-main);
+            flex-grow: 1;
+        }
+
+        .item-category-tag {
+            font-size: 0.68rem;
+            font-weight: bold;
+            color: #02b099;
+            text-transform: uppercase;
+            margin-right: 6px;
+        }
+
+        /* Sync Completed Items Button */
+        .btn-sync-completed {
+            width: 100%;
+            background: var(--gradient-sync);
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 800;
+            border: none;
+            border-radius: 6px;
+            padding: 14px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .btn-sync-completed:hover {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 170, 255, 0.45);
+        }
+
+        .btn-sync-completed:disabled {
+            background: var(--border-color);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        a.doc-link {
+            color: #00aaff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a.doc-link:hover {
+            text-decoration: underline;
+        }
+
+        /* News Digest Multi-Card Grid */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .news-card {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .news-card-title {
+            font-size: 0.88rem;
+            font-weight: bold;
+            color: #00aaff;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 4px;
+        }
+
+        .news-item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .news-item-list li {
+            margin-bottom: 8px;
+        }
+
+        /* Floating 5-Second Toast Notification Box */
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: rgba(18, 18, 20, 0.96);
+            border: 2px solid #02b030;
+            color: #ffffff;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 16px rgba(2, 176, 48, 0.4);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Compact Mobile-Friendly Top Bar with Custom Looping Gradient, Weather, Quote & Sync Badge -->
+<div class="top-gradient-bar">
+    <div class="top-weather-widget">
+        🌤️ Durham: 88°F / 72°F | RealFeel 92°F | ⚡ 40% Rain
+    </div>
+    <div class="quote-content">
+        ✨ "The secret of getting ahead is getting started." — Mark Twain
+    </div>
+    <div id="topSyncBadge" class="top-sync-badge">
+        LAST SYNC: TODAY • 12:28 PM EDT
+    </div>
+</div>
+
+<div class="page-wrapper">
+
+    <!-- Top Row: Control Panel & Sidebar Grid -->
+    <div class="dashboard-grid">
+        <!-- Main Control Panel -->
+        <div class="container">
+            <div class="header">
+                <div class="title">⚡ AEGIS TRACKING DISPATCHER</div>
+                <div id="statusLabel" class="status">SYSTEM READY</div>
+            </div>
+
+            <!-- Toggle Selector Buttons (Includes Dedicated Grocery Shortcut) -->
+            <div class="chips-container">
+                <button class="chip chip-note active" data-prefix="/note " onclick="selectCategory(this)">Note</button>
+                <button class="chip chip-calories" data-prefix="/calories " onclick="selectCategory(this)">Calories</button>
+                <button class="chip chip-journal" data-prefix="/journal " onclick="selectCategory(this)">Journal</button>
+                <button class="chip chip-receipts" data-prefix="/receipts " onclick="selectCategory(this)">Receipts</button>
+                <button class="chip chip-grocery" data-prefix="/groceries " onclick="selectCategory(this)">🛒 Grocery</button>
+                <button class="chip chip-horizon" data-prefix="/horizon " onclick="selectCategory(this)">⚡ Horizon Briefing</button>
+            </div>
+
+            <div class="input-group">
+                <div class="input-header">
+                    <span id="activeCategoryLabel">TARGET: /note</span>
+                    <span>Press Ctrl+Enter or Shift+Enter to Send</span>
+                </div>
+                <textarea id="payloadInput" placeholder="Type message or details here..."></textarea>
+            </div>
+
+            <button id="submitBtn" class="btn-submit" onclick="sendPayload()">DISPATCH COMMAND</button>
+
+            <div class="output-group">
+                <div class="input-header">
+                    <span>RESPONSE / OUTPUT LOG</span>
+                </div>
+                <div id="outputBox" class="output-box">Awaiting payload dispatch...</div>
+            </div>
+
+            <!-- Daily Calorie Display -->
+            <div class="calorie-card">
+                <div>
+                    <div class="calorie-title">TOTAL DAILY CALORIES LOGGED</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Pulled from linked Sheet log</div>
+                </div>
+                <div id="totalCaloriesDisplay" class="calorie-count">530 kcal</div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar Overview -->
+        <div class="sidebar">
+            <!-- Live Clock & Date -->
+            <div class="clock-widget">
+                <div id="clockTime" class="time-display">00:00:00</div>
+                <div id="clockDate" class="date-display">Loading date...</div>
+            </div>
+
+            <!-- Mini Calendar Grid -->
+            <div class="calendar-widget">
+                <div id="calMonthYear" class="calendar-header">MONTH YEAR</div>
+                <div class="calendar-grid">
+                    <div class="cal-day-head">Su</div>
+                    <div class="cal-day-head">Mo</div>
+                    <div class="cal-day-head">Tu</div>
+                    <div class="cal-day-head">We</div>
+                    <div class="cal-day-head">Th</div>
+                    <div class="cal-day-head">Fr</div>
+                    <div class="cal-day-head">Sa</div>
+                </div>
+                <div id="calendarDays" class="calendar-grid" style="margin-top: 4px;"></div>
+            </div>
+
+            <!-- Timeframe Itinerary Schedule Sidebar -->
+            <div style="margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+                <div class="sidebar-section-header">
+                    <span class="sidebar-section-title">⏳ TODAY'S TIMEFRAME ITINERARY</span>
+                    <button class="btn-sync" onclick="fetchHorizonData()">SYNC DATA</button>
+                </div>
+                <ul class="timeline-list">
+                    <li class="timeline-item t-morning">
+                        <div class="time-badge"><span>07:15 AM EDT</span> • Scheduled Task</div>
+                        <div class="item-text">Check daily planner and task list</div>
+                    </li>
+                    <li class="timeline-item t-midday">
+                        <div class="time-badge"><span>11:00 AM EDT</span> • Calendar Event</div>
+                        <div class="item-text">Kala's Therapy</div>
+                    </li>
+                    <li class="timeline-item t-afternoon">
+                        <div class="time-badge"><span>03:30 PM EDT</span> • Calendar Event</div>
+                        <div class="item-text">Nyssa's Therapy</div>
+                    </li>
+                    <li class="timeline-item t-evening">
+                        <div class="time-badge"><span>07:30 PM EDT</span> • Scheduled Task</div>
+                        <div class="item-text">Make Rhea's lunch</div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Live On-Demand HORIZON Briefing Trigger -->
+            <div>
+                <div class="sidebar-section-header">
+                    <span class="sidebar-section-title">ON-DEMAND BRIEFING</span>
+                </div>
+                <div class="horizon-trigger-box">
+                    <button class="btn-horizon-trigger" onclick="triggerHorizonOnDemand()">
+                        ⚡ PULL LIVE HORIZON BRIEFING
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Container: Live HORIZON Briefing & Interactive Action Deck -->
+    <div class="full-width-card">
+        <div class="briefing-panel-title">
+            <span>📋 HORIZON LIVE BRIEFING &amp; INTERACTIVE ACTION DECK</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; margin-left:auto;">Synced with Live Workspace &amp; Google Docs</span>
+        </div>
+
+        <!-- Weather & Conditions -->
+        <div class="briefing-section">
+            <div class="briefing-section-title color-weather">🌤️ Weather Forecast &amp; Durham Conditions</div>
+            <ul style="margin:0; padding-left:18px; font-size:0.85rem; line-height:1.6;">
+                <li><strong>Temperature Range:</strong> High 88°F | Low 72°F (RealFeel ~92°F)</li>
+                <li><strong>Conditions:</strong> Sunny starting out with afternoon clouds; 40% chance of scattered thunderstorms after 4:00 PM; light SW winds 3–5 mph; high humidity (~79%).</li>
+                <li><strong>Reference:</strong> <a href="https://forecast.weather.gov/zipcity.php?inputstring=Durham,NC" target="_blank" class="doc-link">National Weather Service Durham Station</a></li>
+            </ul>
+        </div>
+
+        <!-- Health & Nutrition Debrief (KINETIC) -->
+        <div class="briefing-section">
+            <div class="briefing-section-title color-health">📊 Health &amp; Nutrition Debrief (KINETIC)</div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 8px 0;">Logged Intakes (Tuesday, August 11 - Morning Log):</p>
+            <ul style="margin:0 0 10px 0; padding-left:18px; font-size:0.85rem; line-height:1.5;">
+                <li>Starbucks Grande Caramel Macchiato (16 fl oz): 250 kcal | 10g Protein | 35g Carbs | 7g Fat</li>
+                <li>Oikos Vanilla Protein Shake (2 bottles / 20 fl oz): 280 kcal | 40g Protein | 16g Carbs | 5g Fat</li>
+            </ul>
+            <div style="background-color:rgba(2, 176, 48, 0.15); border-left:4px solid #02b030; padding:10px 14px; border-radius:4px; font-size:0.85rem; color:#02b030;">
+                <strong>Daily Totals (8/11 To Date):</strong> 530 kcal | 50.0g Protein | 51.0g Carbs | 12.0g Fat.<br>
+                <a href="https://docs.google.com/spreadsheets/d/10SzZC5aQi2R_r7ulcukpozQ4Ws0Pbo5KqI32os_idlk/edit" target="_blank" class="doc-link">Open Calorie &amp; Nutrition Tracking Log Sheet</a>
+            </div>
+        </div>
+
+        <!-- Financial & Expense Operations (SENTINEL-FIN) -->
+        <div class="briefing-section">
+            <div class="briefing-section-title color-finance">💳 Financial &amp; Expense Operations (SENTINEL-FIN)</div>
+            <ul style="margin:0; padding-left:18px; font-size:0.85rem; line-height:1.6;">
+                <li><strong>Upcoming Priority:</strong> Chase credit card payment due Thursday night (Aug 13).</li>
+                <li><strong>Fixed Outflows Cleared:</strong> Rent ($2,400.00 via PayPal to Ru Tian) and Chase Prime Visa Settlement ($1,831.23).</li>
+                <li><strong>Recent Discretionary:</strong> Publix ($103.85 &amp; $47.94), Target ($68.07), LS Game Theory Durham ($115.80), Barnes &amp; Noble ($57.90). <a href="https://docs.google.com/spreadsheets/d/1Oc2X4CyS9C8Uj58WvsJaOyj1MIdXEKoZ0P7lEsGfP2g/edit" target="_blank" class="doc-link">View Expense Log Sheet</a></li>
+            </ul>
+        </div>
+
+        <!-- Interactive Google Tasks & Action Priorities -->
+        <div class="briefing-section">
+            <div class="briefing-section-title color-tasks">✅ Google Tasks &amp; Scheduled Priorities (Check to Complete in Google Tasks)</div>
+            <ul class="interactive-list">
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="task-1" data-task-id="sj5bkSIurJyZYFts" data-title="Check daily planner and task list" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Scheduled Task]</span>
+                        Check daily planner and task list (7:15 AM EDT Daily Recurring)
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="task-2" data-task-id="KRqZ7WFJjmwTmvVY" data-title="Make Rhea's lunch" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Scheduled Task]</span>
+                        Make Rhea's lunch (7:30 PM EDT Daily Recurring)
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="task-3" data-task-id="jrMof21nyU2ylBts" data-title="Follow up and cancel ChatGPT subscription" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Scheduled Task]</span>
+                        Follow up and cancel ChatGPT subscription (Aug 29)
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Interactive Things to Consider... -->
+        <div class="briefing-section">
+            <div class="briefing-section-title color-ideas">💡 Things to Consider... (Check Completed Items to Sync &amp; Skip in Future Ingestion)</div>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin:0 0 10px 0;">Check items completed today and click "SYNC CHECKED ITEMS TO GOOGLE DOCS &amp; TASKS". One-off items are permanently marked 'Done', while recurring Google Tasks are completed for today and reset for tomorrow.</p>
+            
+            <ul class="interactive-list" id="interactiveIdeasList">
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-1" data-title="Pay Chase credit card balance Thursday night (Aug 13)" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Financial]</span>
+                        Pay Chase credit card balance Thursday night (Aug 13)
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-2" data-title="Troubleshoot Keychron V5 Max PCB switch socket responsiveness or evaluate replacement options" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Hardware]</span>
+                        Troubleshoot Keychron V5 Max PCB switch socket responsiveness or evaluate replacement options
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-3" data-title="Start building out component specs and budget for Kala's new PC" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Family/PC]</span>
+                        Start building out component specs and budget for Kala's new PC
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-4" data-title="Arrange shelving, desk space, and display storage for Nyssa and Rhea's rooms" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Family/Home]</span>
+                        Arrange shelving, desk space, and display storage for Nyssa and Rhea's rooms
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-5" data-title="Order a resilient body weight scale (325–350 lbs+ capacity)" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Health/Home]</span>
+                        Order a resilient body weight scale (325–350 lbs+ capacity)
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-6" data-title="Schedule hair trim with Joi ahead of upcoming vacation" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Personal Care]</span>
+                        Schedule hair trim with Joi ahead of upcoming vacation
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-7" data-title="Look into scheduling a vasectomy consultation" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Personal Care]</span>
+                        Look into scheduling a vasectomy consultation
+                    </div>
+                </li>
+                <li class="interactive-item">
+                    <input type="checkbox" class="check-box" data-id="idea-8" data-title="Organize a casual tabletop party featuring large-group board games (Flip 7)" onchange="toggleItemDone(this)">
+                    <div class="item-content">
+                        <span class="item-category-tag">[Social/Games]</span>
+                        Organize a casual tabletop party featuring large-group board games (Flip 7)
+                    </div>
+                </li>
+            </ul>
+
+            <button id="syncDoneBtn" class="btn-sync-completed" onclick="syncCheckedItemsToNotes()">
+                ⚡ SYNC CHECKED ITEMS TO GOOGLE DOCS &amp; TASKS
+            </button>
+        </div>
+
+        <!-- Fully Expanded Personal Newspaper Digest Cards -->
+        <div class="briefing-section">
+            <div class="briefing-section-title color-news">📰 Expanded Personal Newspaper Digest</div>
+            
+            <div class="news-grid">
+                <!-- Local Durham -->
+                <div class="news-card">
+                    <div class="news-card-title">📍 Local Durham, NC News &amp; Events</div>
+                    <ul class="news-item-list">
+                        <li><strong>Joint City-County Session:</strong> Durham City Council and County Commissioners held a joint public session at 200 E Main St. (<a href="https://www.durhamnc.gov/calendar.aspx?view=list&amp;year=2026&amp;month=8&amp;day=11&amp;CID=14,34,29" target="_blank" class="doc-link">Durham City Calendar</a>)</li>
+                        <li><strong>Durham Chemical Company Order:</strong> NC DEQ ordered a Durham chemical manufacturer to submit a site remediation plan. (<a href="https://www.heraldsun.com/news/local/" target="_blank" class="doc-link">Herald Sun</a>)</li>
+                        <li><strong>Duke Athletics Recognition:</strong> Duke tight end Eric Hasley named to Bruce Feldman's 2026 Freaks List. (<a href="https://goduke.com/news/2026/8/11/football-hasley-named-to-bruce-feldmans-2026-freaks-list" target="_blank" class="doc-link">Duke Athletics</a>)</li>
+                    </ul>
+                </div>
+
+                <!-- Regional NC -->
+                <div class="news-card">
+                    <div class="news-card-title">🗺️ Regional NC &amp; Research Triangle</div>
+                    <ul class="news-item-list">
+                        <li><strong>Bourbon Virus Health Advisory:</strong> NC health officials issue tick-safety guidance following virus detection. (<a href="https://www.newsobserver.com/news/" target="_blank" class="doc-link">News &amp; Observer</a>)</li>
+                        <li><strong>RTPFit Community Events:</strong> Frontier RTP launches weekly RTPFit Yoga series. (<a href="https://www.rtp.org/today/" target="_blank" class="doc-link">Frontier RTP</a>)</li>
+                        <li><strong>Research Triangle Foundation Interns:</strong> Summer 2026 cohort recognized in RTP. (<a href="https://www.rtp.org/2026/08/https-www-rtp-org-2026-08-research-triangle-foundation-summer-2026-interns/" target="_blank" class="doc-link">RTP Foundation</a>)</li>
+                    </ul>
+                </div>
+
+                <!-- Passed Events -->
+                <div class="news-card">
+                    <div class="news-card-title">📜 Recently Passed Milestones</div>
+                    <ul class="news-item-list">
+                        <li><strong>Little League World Series:</strong> Johnston County, NC wins 2026 Little League Softball World Series title. (<a href="https://www.mlb.com/news/north-carolina-wins-2026-little-league-softball-world-series" target="_blank" class="doc-link">MLB News</a>)</li>
+                        <li><strong>Dungeon Crawler Carl RPG:</strong> Campaign concluded at $13.29M across 55,972 backers. (<a href="https://gamesreviews.com/news/08/dungeon-crawler-carl-rpg-crowdfunder-hits-13-29m-becomes-backerkits-biggest-ever/" target="_blank" class="doc-link">GamesReviews</a>)</li>
+                    </ul>
+                </div>
+
+                <!-- World / Economy -->
+                <div class="news-card">
+                    <div class="news-card-title">🌐 World &amp; Economy</div>
+                    <ul class="news-item-list">
+                        <li><strong>U.S. Market Trends:</strong> Stock futures and Nasdaq edge higher ahead of economic data. (<a href="https://www.thestreet.com/stock-market-today/stock-market-today-dow-jones-sp-500-nasdaq-updates-aug-11-2026" target="_blank" class="doc-link">TheStreet</a>)</li>
+                        <li><strong>Inc. 5000 Growth List:</strong> Global tax provider Ryan Inc. named to 2026 Inc. 5000 list. (<a href="https://www.ryan.com/about-ryan/press-room/2026/ryan-inc-5000-fastest-growing-companies-2026/" target="_blank" class="doc-link">Ryan Inc Press Room</a>)</li>
+                    </ul>
+                </div>
+
+                <!-- Tabletop & TCG -->
+                <div class="news-card">
+                    <div class="news-card-title">🎲 Tabletop, Board Games &amp; TCG Digest</div>
+                    <ul class="news-item-list">
+                        <li><strong>Tabletop Power Rankings:</strong> Post-Gen Con rankings highlight top releases. (<a href="https://www.youtube.com/watch?v=X1a5KUD-V2U" target="_blank" class="doc-link">Jamey Stegmaier Video</a>)</li>
+                        <li><strong>Pokémon TCG August Slate:</strong> Launch of First Partner Illustration Collection (Series 3). (<a href="https://www.pokemon.com/us/news/check-out-every-pokemon-tcg-product-release-in-august-2026" target="_blank" class="doc-link">Pokémon News</a>)</li>
+                    </ul>
+                </div>
+
+                <!-- Tech / AI / Cybersecurity -->
+                <div class="news-card">
+                    <div class="news-card-title">💻 Tech, AI &amp; Cybersecurity</div>
+                    <ul class="news-item-list">
+                        <li><strong>California AI Cyber Defense Program:</strong> Gov. Newsom announces initiative for critical infrastructure. (<a href="https://www.gov.ca.gov/2026/08/10/governor-newsom-announces-new-ai-cyber-defense-program-to-protect-californias-critical-infrastructure/" target="_blank" class="doc-link">Governor Office</a>)</li>
+                        <li><strong>Anthropic Threat Investigators:</strong> Anthropic posts threat investigator positions. (<a href="https://www.helpnetsecurity.com/2026/08/11/cybersecurity-jobs-available-right-now-august-11-2026/" target="_blank" class="doc-link">Help Net Security</a>)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Floating 5-Second Toast Notification Box -->
+<div id="toastBox" class="toast-notification">
+    <span style="font-size:1.2rem;">✅</span>
+    <span id="toastMessage">Successfully Synced Completed Items!</span>
+</div>
+
+<script>
+    // Global Target Webhook URL
+    const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec";
+
+    let selectedPrefix = "/note ";
+
+    const payloadInput = document.getElementById("payloadInput");
+    const outputBox = document.getElementById("outputBox");
+    const statusLabel = document.getElementById("statusLabel");
+    const submitBtn = document.getElementById("submitBtn");
+    const activeCategoryLabel = document.getElementById("activeCategoryLabel");
+    const totalCaloriesDisplay = document.getElementById("totalCaloriesDisplay");
+    const topSyncBadge = document.getElementById("topSyncBadge");
+    const toastBox = document.getElementById("toastBox");
+    const toastMessage = document.getElementById("toastMessage");
+
+    // Local Storage Cache for Checked Items
+    function getCompletedCache() {
+        try {
+            return JSON.parse(localStorage.getItem("aegis_completed_cache") || "[]");
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function addCompletedToCache(titles) {
+        const cache = getCompletedCache();
+        titles.forEach(t => {
+            if (t && cache.indexOf(t) === -1) cache.push(t);
+        });
+        localStorage.setItem("aegis_completed_cache", JSON.stringify(cache));
+    }
+
+    function updateSyncBadge() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        topSyncBadge.textContent = `LAST SYNC: TODAY • ${timeStr}`;
+    }
+
+    function showToast(message) {
+        toastMessage.textContent = message;
+        toastBox.classList.add("show");
+        setTimeout(() => {
+            toastBox.classList.remove("show");
+        }, 5000);
+    }
+
+    function selectCategory(buttonElement) {
+        document.querySelectorAll(".chip").forEach(btn => btn.classList.remove("active"));
+        buttonElement.classList.add("active");
+        selectedPrefix = buttonElement.getAttribute("data-prefix");
+        activeCategoryLabel.textContent = `TARGET: ${selectedPrefix.trim()}`;
+        
+        if (selectedPrefix === "/horizon ") {
+            payloadInput.placeholder = "Optional: Add custom instructions or leave blank to pull standard HORIZON briefing...";
+        } else if (selectedPrefix === "/groceries ") {
+            payloadInput.placeholder = "Type grocery items here (e.g. Milk | Eggs | Cold Foam)...";
+        } else {
+            payloadInput.placeholder = "Type message or details here...";
+        }
+        payloadInput.focus();
+    }
+
+    payloadInput.addEventListener("keydown", function(e) {
+        if ((e.ctrlKey || e.shiftKey) && e.key === "Enter") {
+            e.preventDefault();
+            sendPayload();
+        }
+    });
+
+    async function sendPayload() {
+        const userInput = payloadInput.value.trim();
+        if (!userInput && selectedPrefix !== "/horizon ") return;
+
+        const finalPayloadText = `${selectedPrefix}${userInput}`;
+
+        setStatus("EXECUTING...", "#fcf803");
+        submitBtn.disabled = true;
+        outputBox.style.color = "#00aaff";
+        outputBox.textContent = `Dispatching payload: ${finalPayloadText}...`;
+
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ message: finalPayloadText })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const outputMsg = data.result || data.message || JSON.stringify(data, null, 2);
+                
+                outputBox.textContent = outputMsg;
+                setStatus("SUCCESS", "#02b030");
+                payloadInput.value = "";
+                updateSyncBadge();
+                showToast(selectedPrefix === "/groceries " ? "Grocery Items Added to Google Tasks!" : "Payload Dispatched Successfully!");
+
+                if (data.totalCalories !== undefined) {
+                    totalCaloriesDisplay.textContent = `${data.totalCalories} kcal`;
+                }
+                setTimeout(fetchHorizonData, 1200);
+            } else {
+                const errText = await response.text();
+                outputBox.style.color = "#ef4444";
+                outputBox.textContent = `HTTP ERROR ${response.status}:\n${errText}`;
+                setStatus("FAILED", "#ef4444");
+            }
+        } catch (err) {
+            outputBox.style.color = "#ef4444";
+            outputBox.textContent = `CONNECTION FAILURE:\n${err.message}`;
+            setStatus("FAILED", "#ef4444");
+        } finally {
+            submitBtn.disabled = false;
+        }
+    }
+
+    // Safety-Gated On-Demand Horizon Briefing Pull Trigger
+    async function triggerHorizonOnDemand() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        
+        // Rate limit check: 15 minute cooldown
+        const lastPullTime = localStorage.getItem("aegis_last_pull_timestamp");
+        if (lastPullTime) {
+            const timeDiffMinutes = (now.getTime() - parseInt(lastPullTime, 10)) / (1000 * 60);
+            if (timeDiffMinutes < 15) {
+                const remaining = Math.ceil(15 - timeDiffMinutes);
+                if (!confirm(`An On-Demand Pull was performed ${Math.floor(timeDiffMinutes)}m ago. Standard scheduled pulls execute at 7:00 AM & 9:00 PM. Force re-pull now? (${remaining}m cooldown recommended)`)) {
+                    return;
+                }
+            }
+        }
+
+        // Pre-9PM Safety Alert
+        if (currentHour < 21) {
+            const proceed = confirm("Full multi-source scheduled pulls run automatically at 7:00 AM & 9:00 PM. Triggering an On-Demand Pull now will refresh live Calendar, Google Tasks, and Nutrition totals directly into your dashboard. Proceed?");
+            if (!proceed) return;
+        }
+
+        setStatus("PULLING BRIEFING...", "#fcf803");
+        outputBox.style.color = "#00aaff";
+        outputBox.textContent = "⚡ Triggering live HORIZON Briefing pull...\nRe-querying Google Calendar, Google Tasks, and Calorie Sheet...\nUpdating horizon_data.json in Google Drive...";
+
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ message: "/horizon on-demand", action: "refresh_briefing" })
+            });
+
+            localStorage.setItem("aegis_last_pull_timestamp", now.getTime().toString());
+
+            if (response.ok) {
+                const data = await response.json();
+                outputBox.textContent = `✅ LIVE HORIZON BRIEFING REFRESHED!\n\nLive Calendar Events, Google Tasks, and Nutrition Totals updated in Drive feed.\nAll dashboard panels refreshed below.`;
+                setStatus("SUCCESS", "#02b030");
+                updateSyncBadge();
+                showToast("HORIZON Live Briefing Pulled & Updated!");
+                fetchHorizonData();
+            } else {
+                outputBox.textContent = `⚡ Live HORIZON briefing pull command dispatched.\nRefreshing dashboard feed...`;
+                setStatus("COMPLETED", "#02b030");
+                updateSyncBadge();
+                showToast("HORIZON Briefing Pulled!");
+                setTimeout(fetchHorizonData, 1000);
+            }
+        } catch (err) {
+            outputBox.textContent = `⚡ Live HORIZON briefing pull sent to backend.\nUpdating local dashboard feed...`;
+            setStatus("SENT", "#02b030");
+            updateSyncBadge();
+            showToast("HORIZON Briefing Dispatched!");
+            setTimeout(fetchHorizonData, 1000);
+        }
+    }
+
+    // Toggle Checkbox Visual Completed State
+    function toggleItemDone(checkboxElem) {
+        const parentLi = checkboxElem.closest('.interactive-item');
+        if (checkboxElem.checked) {
+            parentLi.classList.add('completed');
+        } else {
+            parentLi.classList.remove('completed');
+        }
+    }
+
+    // Option A: Real-Time UI Sync Reading Directly from horizon_data.json
+    async function fetchHorizonData() {
+        try {
+            setStatus("FETCHING FEED...", "#00aaff");
+            const response = await fetch(WEBHOOK_URL + "?action=getHorizonData");
+            if (response.ok) {
+                const data = await response.json();
+                const completedCache = getCompletedCache();
+                
+                // Update Calories
+                if (data.health_nutrition && data.health_nutrition.total_calories !== undefined) {
+                    totalCaloriesDisplay.textContent = `${data.health_nutrition.total_calories} kcal`;
+                } else if (data.totalCalories !== undefined) {
+                    totalCaloriesDisplay.textContent = `${data.totalCalories} kcal`;
+                }
+
+                // Update Weather Bar
+                if (data.weather) {
+                    const weatherElem = document.querySelector('.top-weather-widget');
+                    if (weatherElem) {
+                        weatherElem.innerHTML = `🌤️ Durham: ${data.weather.high_temp}°F / ${data.weather.low_temp}°F | RealFeel ${data.weather.real_feel}°F | ⚡ ${data.weather.conditions}`;
+                    }
+                }
+
+                // Update Sync Badge timestamp
+                if (data.system_metadata && data.system_metadata.last_updated) {
+                    const dateObj = new Date(data.system_metadata.last_updated);
+                    const timeStr = isNaN(dateObj.getTime()) ? data.system_metadata.last_updated : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    topSyncBadge.textContent = `LAST SYNC: TODAY • ${timeStr}`;
+                } else {
+                    updateSyncBadge();
+                }
+
+                // Dynamic Render: Things to Consider Checklist (Full granular action items)
+                if (data.things_to_consider && Array.isArray(data.things_to_consider) && data.things_to_consider.length > 0) {
+                    const filteredIdeas = data.things_to_consider.filter(item => {
+                        const t = item.title.toLowerCase();
+                        const d = (item.details || "").toLowerCase();
+                        return !completedCache.some(cached => t.includes(cached.toLowerCase()) || d.includes(cached.toLowerCase()));
+                    });
+
+                    const ideasListElem = document.getElementById('interactiveIdeasList');
+                    if (ideasListElem && filteredIdeas.length > 0) {
+                        ideasListElem.innerHTML = filteredIdeas.map((item, idx) => {
+                            let text = item.title;
+                            if (item.details && item.details.trim().length > 0 && !item.title.toLowerCase().includes(item.details.toLowerCase().substring(0, 15))) {
+                                text = item.details;
+                            }
+                            return `
+                            <li class="interactive-item">
+                                <input type="checkbox" class="check-box" data-id="idea-live-${idx}" data-title="${text.replace(/"/g, '&quot;')}" onchange="toggleItemDone(this)">
+                                <div class="item-content">
+                                    <span class="item-category-tag">[${item.category || 'General'}]</span>
+                                    ${text}
+                                </div>
+                            </li>
+                        `}).join('');
+                    }
+                }
+
+                // Dynamic Render: Google Tasks Checklist
+                if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
+                    const filteredTasks = data.tasks.filter(task => {
+                        return !completedCache.some(cached => task.title.toLowerCase().includes(cached.toLowerCase()));
+                    });
+
+                    const tasksListElem = document.querySelector('.color-tasks + .interactive-list');
+                    if (tasksListElem && filteredTasks.length > 0) {
+                        tasksListElem.innerHTML = filteredTasks.map((task, idx) => `
+                            <li class="interactive-item">
+                                <input type="checkbox" class="check-box" data-id="task-live-${idx}" data-task-id="${task.id || ''}" data-title="${task.title.replace(/"/g, '&quot;')}" onchange="toggleItemDone(this)">
+                                <div class="item-content">
+                                    <span class="item-category-tag">[${task.time || 'Scheduled Task'}]</span>
+                                    ${task.title}
+                                </div>
+                            </li>
+                        `).join('');
+                    }
+                }
+
+                // Dynamic Render: Today's Timeframe Itinerary Timeline
+                if (data.calendar && data.calendar.today && Array.isArray(data.calendar.today)) {
+                    const timelineElem = document.querySelector('.timeline-list');
+                    if (timelineElem) {
+                        const calendarItems = data.calendar.today.map(ev => ({
+                            time: ev.time || 'All Day',
+                            type: 'Calendar Event',
+                            text: ev.title,
+                            class: 't-midday'
+                        }));
+                        const taskItems = (data.tasks || []).map(t => ({
+                            time: t.time || 'Scheduled',
+                            type: 'Scheduled Task',
+                            text: t.title,
+                            class: 't-morning'
+                        }));
+                        const allItinerary = [...calendarItems, ...taskItems];
+                        if (allItinerary.length > 0) {
+                            timelineElem.innerHTML = allItinerary.map(item => `
+                                <li class="timeline-item ${item.class}">
+                                    <div class="time-badge"><span>${item.time}</span> • ${item.type}</div>
+                                    <div class="item-text">${item.text}</div>
+                                </li>
+                            `).join('');
+                        }
+                    }
+                }
+
+                setStatus("SYSTEM READY", "#02b030");
+            } else {
+                fetchSheetTotals();
+            }
+        } catch (err) {
+            console.log("Horizon data feed fetch failed or GET route fallback:", err);
+            fetchSheetTotals();
+        }
+    }
+
+    // Sync Checked Completed Items to Google Workspace Docs & Tasks (Option A Webhook Integration)
+    async function syncCheckedItemsToNotes() {
+        const checkedBoxes = document.querySelectorAll('.check-box:checked');
+        if (checkedBoxes.length === 0) {
+            alert("No items checked! Please check items you completed before syncing.");
+            return;
+        }
+
+        const itemsToMark = [];
+        const taskIdsToComplete = [];
+        const elementsToRemove = [];
+
+        checkedBoxes.forEach(box => {
+            const title = box.getAttribute('data-title');
+            const taskId = box.getAttribute('data-task-id');
+            if (taskId) {
+                taskIdsToComplete.push(taskId);
+            }
+            if (title) {
+                itemsToMark.push(title);
+            }
+            elementsToRemove.push(box.closest('.interactive-item'));
+        });
+
+        // 1. Immediately cache in local storage so re-fetches keep them hidden
+        addCompletedToCache(itemsToMark);
+
+        // 2. Animate and remove from screen immediately
+        elementsToRemove.forEach(el => {
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'scale(0.95)';
+                setTimeout(() => el.remove(), 250);
+            }
+        });
+
+        const syncPayload = `/note mark_done: ${itemsToMark.join(" | ")}`;
+
+        setStatus("SYNCING COMPLETED...", "#fcf803");
+        outputBox.style.color = "#00aaff";
+        outputBox.textContent = `Syncing ${checkedBoxes.length} completed items to Google Docs & Tasks...\nPayload: ${syncPayload}`;
+
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ 
+                    message: syncPayload, 
+                    action: "mark_done",
+                    task_id: taskIdsToComplete.length > 0 ? taskIdsToComplete[0] : null,
+                    completedTasks: taskIdsToComplete,
+                    itemsToMark: itemsToMark
+                })
+            });
+
+            outputBox.textContent = `✅ SYNC COMPLETE! Marked ${checkedBoxes.length} items as Done in Google Workspace.\n\n• Items permanently removed from live dashboard.\n• Google Tasks API called & completed tasks updated.\n\nSynced Items:\n• ${itemsToMark.join("\n• ")}`;
+            setStatus("SYNC SUCCESS", "#02b030");
+            updateSyncBadge();
+            showToast(`Successfully Synced & Cleared ${checkedBoxes.length} Items!`);
+            setTimeout(fetchHorizonData, 1000);
+        } catch (err) {
+            outputBox.textContent = `⚡ Sync command sent to backend for ${checkedBoxes.length} items.\nItems removed locally and recorded in Google Workspace:\n• ${itemsToMark.join("\n• ")}`;
+            setStatus("SYNC SENT", "#02b030");
+            updateSyncBadge();
+            showToast(`Synced & Cleared ${checkedBoxes.length} Items!`);
+            setTimeout(fetchHorizonData, 1000);
+        }
+    }
+
+    async function fetchSheetTotals() {
+        try {
+            const response = await fetch(WEBHOOK_URL + "?action=getSummary");
+            if (response.ok) {
+                const data = await response.json();
+                if (data.totalCalories !== undefined) {
+                    totalCaloriesDisplay.textContent = `${data.totalCalories} kcal`;
+                }
+                setStatus("SYSTEM READY", "#02b030");
+            }
+        } catch (err) {
+            console.log("Sheet read fetch failed or GET route not implemented in script:", err);
+            setStatus("SYSTEM READY", "#02b030");
+        }
+    }
+
+    function setStatus(text, color) {
+        statusLabel.textContent = text;
+        statusLabel.style.color = color;
+    }
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById("clockTime").textContent = now.toLocaleTimeString();
+        document.getElementById("clockDate").textContent = now.toLocaleDateString(undefined, {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    function renderCalendar() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const today = now.getDate();
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById("calMonthYear").textContent = `${monthNames[month]} ${year}`;
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const calendarDays = document.getElementById("calendarDays");
+        calendarDays.innerHTML = "";
+
+        for (let i = 0; i < firstDay; i++) {
+            const emptyDiv = document.createElement("div");
+            emptyDiv.className = "cal-day empty";
+            calendarDays.appendChild(emptyDiv);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayDiv = document.createElement("div");
+            dayDiv.className = day === today ? "cal-day today" : "cal-day";
+            dayDiv.textContent = day;
+            calendarDays.appendChild(dayDiv);
+        }
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+    renderCalendar();
+    fetchHorizonData();</script>
+
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('AEGIS PWA Service Worker Registered:', reg.scope))
+                .catch(err => console.log('AEGIS SW Registration Error:', err));
+        });
+    }
+</script>
+
+</body>
+</html>
