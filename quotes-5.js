@@ -1,0 +1,2 @@
+Q.push(...[
+['You only live once, but if you do it right, once is enough.','Mae West'],["Do what you feel in your heart to be right—for you'll be criticized anyway.",'Eleanor Roosevelt'],['Freedom lies in being bold.','Robert Frost'],['It is not the critic who counts; not the man who points out
