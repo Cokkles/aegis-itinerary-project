@@ -1,0 +1,14 @@
+/* AEGIS v2.4.1 UI polish */
+.brand-icon{width:34px;height:34px;object-fit:contain;flex:0 0 34px;filter:drop-shadow(0 0 8px #58b9e855)}
+.nav.collapsed .brand-icon{width:36px;height:36px}
+.event-input{margin-bottom:12px}
+.event-preview{margin-top:14px!important;margin-bottom:0!important;clear:both;min-height:48px}
+.health-card{display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:4px;align-items:start}
+.health-card>strong{grid-column:1/-1;margin-bottom:3px}
+.health-card .health-label{font-size:.66rem;font-weight:900;letter-spacing:.06em;color:#89a1b3;text-transform:uppercase}
+.health-card .health-value{font-size:.78rem;font-weight:750;min-width:0;overflow-wrap:anywhere}
+.health-card .health-value.status-ready{color:var(--ok)}
+.health-card .health-value.status-partial,.health-card .health-value.status-cached{color:var(--warn)}
+.health-card .health-value.status-failed{color:var(--bad)}
+.health-card .health-detail{grid-column:1/-1;margin-top:3px;padding-top:5px;border-top:1px solid #ffffff12;color:var(--m);font-size:.72rem;overflow-wrap:anywhere}
+@media(max-width:850px){.brand-icon{width:32px;height:32px}.event-preview{margin-top:12px!important}}
