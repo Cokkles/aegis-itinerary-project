@@ -1,11 +1,10 @@
 {
-  "version": 1,
+  "version": 2,
   "updated": "2026-08-20",
   "sources": [
     {"name":"INDY Week","category":"local-triangle","sourceType":"Editorial","priority":8,"enabled":true,"url":"https://indyweek.com/feed/"},
     {"name":"The Assembly NC","category":"nc-policy","sourceType":"Editorial","priority":8,"enabled":true,"url":"https://theassemblync.com/feed/"},
-    {"name":"WRAL Top News","category":"local-triangle","sourceType":"Editorial","priority":9,"enabled":true,"url":"https://www.wral.com/news/rss/48/"},
-    {"name":"WRAL Local Triangle","category":"local-triangle","sourceType":"Editorial","priority":10,"enabled":true,"url":"https://www.wral.com/news/local/rss/142/"},
+    {"name":"WRAL Top News","category":"local-triangle","sourceType":"Editorial","priority":10,"enabled":true,"url":"https://www.wral.com/news/rss/48/"},
     {"name":"ABC11","category":"local-triangle","sourceType":"Editorial","priority":8,"enabled":true,"url":"https://abc11.com/feed/"},
     {"name":"CBS 17","category":"local-triangle","sourceType":"Editorial","priority":8,"enabled":true,"url":"https://www.cbs17.com/feed/"},
     {"name":"City of Durham","category":"local-triangle","sourceType":"Official","priority":10,"enabled":true,"url":"https://www.durhamnc.gov/RSSFeed.aspx?ModID=1&CID=All-0"},
@@ -19,12 +18,14 @@
     {"name":"Rock Paper Shotgun","category":"pc-gaming","sourceType":"Editorial","priority":7,"enabled":true,"url":"https://www.rockpapershotgun.com/feed"},
     {"name":"PC Gamer","category":"pc-gaming","sourceType":"Editorial","priority":7,"enabled":true,"url":"https://www.pcgamer.com/rss"},
     {"name":"Eurogamer","category":"pc-gaming","sourceType":"Editorial","priority":7,"enabled":true,"url":"https://www.eurogamer.net/feed"},
-    {"name":"Digital Foundry","category":"pc-gaming","sourceType":"Editorial","priority":9,"enabled":true,"url":"https://www.eurogamer.net/feed/digital-foundry"},
+    {"name":"Digital Foundry","category":"pc-gaming","sourceType":"Editorial","priority":9,"enabled":true,"url":"https://www.digitalfoundry.net/feeds/latest"},
     {"name":"GamesIndustry.biz","category":"industry","sourceType":"Editorial","priority":8,"enabled":true,"url":"https://www.gamesindustry.biz/feed"},
     {"name":"VGC","category":"industry","sourceType":"Editorial","priority":7,"enabled":true,"url":"https://www.videogameschronicle.com/feed/"},
-    {"name":"IsThereAnyDeal","category":"deals","sourceType":"Aggregator","priority":7,"enabled":true,"url":"https://isthereanydeal.com/rss/deals/"},
+    {"name":"IsThereAnyDeal Deals","category":"deals","sourceType":"Aggregator","priority":8,"enabled":true,"url":"https://isthereanydeal.com/feeds/US/USD/deals.rss"},
+    {"name":"IsThereAnyDeal Bundles","category":"deals","sourceType":"Aggregator","priority":7,"enabled":true,"url":"https://isthereanydeal.com/feeds/US/USD/bundles.rss"},
+    {"name":"IsThereAnyDeal Giveaways","category":"deals","sourceType":"Aggregator","priority":9,"enabled":true,"url":"https://isthereanydeal.com/feeds/US/giveaways.rss"},
     {"name":"r/EscapefromTarkov","category":"tarkov","sourceType":"Community","priority":7,"enabled":true,"url":"https://www.reddit.com/r/EscapefromTarkov/.rss"},
     {"name":"r/EscapeFromTarkovArena","category":"tarkov","sourceType":"Community","priority":6,"enabled":true,"url":"https://www.reddit.com/r/EscapeFromTarkovArena/.rss"},
-    {"name":"Tarkov Wiki Recent Changes","category":"tarkov","sourceType":"Community","priority":6,"enabled":true,"url":"https://escapefromtarkov.fandom.com/wiki/Special:RecentChanges?feed=rss"}
+    {"name":"Tarkov Wiki Recent Changes","category":"tarkov","sourceType":"Community","priority":5,"enabled":false,"url":"https://escapefromtarkov.fandom.com/wiki/Special:RecentChanges?feed=rss","note":"Deferred: Fandom returns HTTP 403 to Apps Script; revisit with Coordinator."}
   ]
 }
