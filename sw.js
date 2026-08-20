@@ -1,5 +1,5 @@
 const CACHE_NAME='aegis-dashboard-v2.2.0';
-const STATIC=['./manifest.json','./icon-192.png','./icon-512.png','./favicon.ico'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+const STATIC=['./manifest.json','./icon-192.png','./icon-512.png','./favicon.ico','./styles.css?v=2.2.0','./app.js?v=2.2.0','./quotes.js?v=2.2.0','./quotes-1.js?v=2.2.0','./quotes-2.js?v=2.2.0','./quotes-3.js?v=2.2.0','./quotes-4.js?v=2.2.0','./quotes-5.js?v=2.2.0','./quotes-6.js?v=2.2.0','./quotes-7.js?v=2.2.0'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.hostname.includes('script.google.com'))return;const nav=e.request.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('/index.html');if(nav){e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE_NAME).then(c=>c.put('./index.html',copy));return r}).catch(()=>caches.match('./index.html')));return}e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{if(r.ok&&r.type==='basic'){const copy=r.clone();caches.open(CACHE_NAME).then(cache=>cache.put(e.request,copy))}return r}))) });
