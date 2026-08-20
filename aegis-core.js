@@ -1,6 +1,6 @@
 window.AEGIS=window.AEGIS||{};
 AEGIS.Core=(()=>{
-  const BUILD='2.4.0';
+  const BUILD='2.4.1';
   const cacheKey=k=>'aegis_cache_'+k;
   const states={};
   function now(){return new Date().toISOString()}
