@@ -14,7 +14,8 @@
   const oldRenderIntel=window.renderIntel;
   window.renderIntel=function(cached=false){
     if(oldRenderIntel) oldRenderIntel(cached);
-    const health=(window.intel&&intel.source_health)||[];
+    let health=[];
+    try{if(typeof intel!=='undefined'&&Array.isArray(intel.source_health))health=intel.source_health;}catch{}
     const box=document.getElementById('intelSourceHealth');
     if(box&&health.length){box.innerHTML=health.map(h=>{const st=String(h.status||'unknown').toLowerCase();const detail=h.error||h.reason||'';return `<div class="health-card"><strong>${e(h.source)}</strong><span class="health-label">Status</span><span class="health-value status-${e(st)}">${e(st.toUpperCase())}</span><span class="health-label">HTTP</span><span class="health-value">${e(String(h.http??'—'))}</span><span class="health-label">Items</span><span class="health-value">${e(String(h.items||0))}</span>${h.attempts?`<span class="health-label">Attempts</span><span class="health-value">${e(String(h.attempts))}</span>`:''}${detail?`<div class="health-detail"><b>Reason:</b> ${e(detail)}</div>`:''}</div>`}).join('');}
   };
