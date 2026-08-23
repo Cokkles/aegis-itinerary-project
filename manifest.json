@@ -1,26 +1,32 @@
 {
-  "name": "AEGIS Central Control & Tracking Dispatcher",
-  "short_name": "AEGIS Dispatcher",
-  "description": "Unified, frictionless central command dispatcher for logging notes, tasks, calories, journals, receipts, groceries, and planner items.",
+  "name": "AEGIS Central Control",
+  "short_name": "AEGIS",
+  "description": "Authenticated GEMINI-POS control surface for HORIZON, Calendar, Tasks, SPARK capture, KINETIC, SENTINEL-FIN, and system intelligence.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#121214",
-  "theme_color": "#10b981",
+  "background_color": "#071019",
+  "theme_color": "#10283b",
   "scope": "./",
   "categories": ["productivity", "utilities"],
   "icons": [
     {
+      "src": "aegis-mark-v3.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
