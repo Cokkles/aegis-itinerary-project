@@ -1,5 +1,21 @@
-const CACHE_NAME='aegis-dashboard-v2.6.1-aq1-authmarkfix';
-const STATIC=['./manifest.json','./icon-192.png','./icon-512.png','./aegis-mark-v3.svg?v=2.6.1','./styles.css?v=2.4.1','./v2.4.1.css?v=2.6.1','./aegis-core.js?v=2.6.0','./app.js?v=2.4.1','./v2.4.1.js?v=2.4.1','./quotes.js?v=2.4.1','./quotes-1.js?v=2.4.1','./quotes-2.js?v=2.4.1','./quotes-3.js?v=2.4.1','./quotes-4.js?v=2.4.1','./quotes-5.js?v=2.4.1','./quotes-6.js?v=2.4.1','./quotes-7.js?v=2.4.1','./quotes-extra.js?v=2.4.1'];
+const CACHE_NAME='aegis-dashboard-v2.6.1-aq1-hotfix1';
+const STATIC=['./manifest.json','./icon-192.png','./icon-512.png','./aegis-mark-v3.svg?v=2.6.1','./styles.css?v=2.4.1','./v2.4.1.css?v=2.6.1','./aegis-core.js?v=2.6.0','./app.js?v=2.4.1','./v2.4.1.js?v=2.4.1','./aq1-hotfix.js?v=2.6.1','./quotes.js?v=2.4.1','./quotes-1.js?v=2.4.1','./quotes-2.js?v=2.4.1','./quotes-3.js?v=2.4.1','./quotes-4.js?v=2.4.1','./quotes-5.js?v=2.4.1','./quotes-6.js?v=2.4.1','./quotes-7.js?v=2.4.1','./quotes-extra.js?v=2.4.1'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.hostname.includes('script.google.com')||u.hostname.includes('open-meteo.com')||u.hostname.includes('accounts.google.com'))return;const nav=e.request.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('/index.html');if(nav){e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE_NAME).then(c=>c.put('./index.html',copy));return r}).catch(()=>caches.match('./index.html')));return}e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request,{cache:'no-store'}).then(r=>{if(r.ok&&r.type==='basic'){const copy=r.clone();caches.open(CACHE_NAME).then(cache=>cache.put(e.request,copy))}return r}))) });
+self.addEventListener('fetch',e=>{
+  const u=new URL(e.request.url);
+  if(e.request.method!=='GET'||u.hostname.includes('script.google.com')||u.hostname.includes('open-meteo.com')||u.hostname.includes('accounts.google.com'))return;
+  const nav=e.request.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('/index.html');
+  if(nav){
+    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE_NAME).then(c=>c.put('./index.html',copy));return r}).catch(()=>caches.match('./index.html')));
+    return;
+  }
+  if(u.pathname.endsWith('/v2.4.1.js')){
+    e.respondWith(Promise.all([
+      caches.match('./v2.4.1.js?v=2.4.1').then(r=>r||fetch(e.request,{cache:'no-store'})),
+      caches.match('./aq1-hotfix.js?v=2.6.1').then(r=>r||fetch('./aq1-hotfix.js?v=2.6.1',{cache:'no-store'}))
+    ]).then(async([base,hotfix])=>new Response((await base.text())+'\n'+(await hotfix.text()),{headers:{'Content-Type':'application/javascript; charset=utf-8'}})));
+    return;
+  }
+  e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request,{cache:'no-store'}).then(r=>{if(r.ok&&r.type==='basic'){const copy=r.clone();caches.open(CACHE_NAME).then(cache=>cache.put(e.request,copy))}return r})));
+});
