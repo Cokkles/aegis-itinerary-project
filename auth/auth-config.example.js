@@ -1,10 +1,9 @@
-// Safe public configuration example. Do not place secrets, API keys, OAuth client secrets,
-// reusable tokens, or private allowlists in this file.
+// PUBLIC configuration only. Google OAuth client IDs are public identifiers.
+// NEVER put a client secret, reusable access token, or private allowlist here.
 window.AEGIS_AUTH_CONFIG = {
-  enabled: false,
-  sessionEndpoint: '',
-  loginEndpoint: '',
-  logoutEndpoint: '',
-  loginRedirectParam: 'return_to',
-  requestCredentials: 'include'
+  enabled: true,
+  provider: 'google',
+  clientId: 'REPLACE_WITH_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com',
+  backendEndpoint: 'REPLACE_WITH_EXISTING_AEGIS_APPS_SCRIPT_WEB_APP_URL',
+  loginAutoPrompt: false
 };
