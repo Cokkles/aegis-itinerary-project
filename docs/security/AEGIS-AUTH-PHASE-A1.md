@@ -1,128 +1,91 @@
 # AEGIS AUTH-1 — Google Identity, Session & Authorization Foundation
 
-Status: IMPLEMENTED ON BRANCH / NOT YET CUT OVER TO PRODUCTION
-Branch: `agent/aegis-auth-foundation`
+Status: **IMPLEMENTATION IN PROGRESS — PRODUCTION ENFORCEMENT NOT YET ENABLED**
 
-## Objective
+## Identity provider
 
-Turn AEGIS authentication from provider-neutral scaffolding into a real Google-backed identity boundary suitable for a GitHub Pages frontend and Google Apps Script backend.
+Provider: Google Identity Services (GIS)
 
-## Architecture
+Public Web Client ID configured for AEGIS:
 
-```text
-GitHub Pages AEGIS shell
-        |
-        v
-Google Identity Services (ID token)
-        |
-        v
-AEGIS Apps Script auth verifier
-        |
-        +--> client ID / audience validation
-        +--> token expiry / issuer validation
-        +--> verified-email validation
-        +--> private allowlist validation
-        +--> scope authorization
-        +--> structured auth audit events
-        |
-        v
-Protected AEGIS operations
-```
+`441009275873-qnf9c9n1o3l9tl9c76t2821hm8tectfl.apps.googleusercontent.com`
 
-## Implemented components
+Authorized JavaScript origin expected:
 
-- `auth/aegis-auth.js`
-  - Google Identity Services credential handling
-  - sessionStorage-only ID token persistence
-  - server-side session validation
-  - scope-aware authorization helpers
-  - secure POST helper
-  - logout and token clearing
-- `auth/aegis-auth-ui.js`
-  - fail-closed login overlay
-  - Google sign-in button rendering
-  - authenticated user/sign-out chip
-  - denied/misconfigured/error states
-- `auth/aegis-auth.css`
-  - isolated authentication UI styling
-- `auth/auth-config.example.js`
-  - public Google OAuth client ID and Apps Script URL configuration
-- `apps-script/AEGIS_Auth.gs`
-  - Google token verification through Google's token-info endpoint
-  - exact OAuth client audience validation
-  - verified-email validation
-  - expiration and issuer validation
-  - Script-Property-backed email allowlist
-  - scope checks
-  - structured audit logging
-  - optional durable `Auth Events` Sheet logging
+`https://cokkles.github.io`
 
-## Required Script Properties
+The client ID is public configuration and is safe to ship in the GitHub Pages application. OAuth client secrets, account allowlists, API keys, refresh tokens, and private security data must never be committed to this repository.
 
-- `AEGIS_GOOGLE_CLIENT_ID`
-- `AEGIS_AUTH_ALLOWED_EMAILS`
+## Required Apps Script Script Properties
+
+Before testing the server-side boundary, configure:
+
+- `AEGIS_GOOGLE_CLIENT_ID` = the configured GIS Web Client ID
+- `AEGIS_AUTH_ALLOWED_EMAILS` = comma-separated private allowlist
+- `AEGIS_AUTH_REQUIRED` = `false` during installation and non-disruptive validation
 
 Optional:
 
 - `AEGIS_AUTH_SCOPES`
 - `AEGIS_AUTH_AUDIT_SHEET_ID`
 
-The allowlist must never be stored in the public GitHub Pages repository.
+Only after authorized and unauthorized flows have both been validated should `AEGIS_AUTH_REQUIRED` be switched to `true`.
+
+## Implemented components
+
+### Browser
+
+- Google GIS credential callback
+- sessionStorage-only ID-token retention
+- backend revalidation using `auth_session`
+- fail-closed auth UI primitives
+- sign-out handling
+- scope-aware secure POST helper
+- public runtime configuration separated from private server configuration
+
+### Apps Script
+
+- Google ID-token validation using Google tokeninfo
+- audience validation against `AEGIS_GOOGLE_CLIENT_ID`
+- issuer and expiry validation
+- verified-email requirement
+- private `AEGIS_AUTH_ALLOWED_EMAILS` enforcement
+- application-scope authorization
+- `AEGIS_AUTH_REQUIRED` feature gate
+- structured authentication/audit events
+- optional durable Auth Events Sheet sink
 
 ## Security invariants
 
-1. A Google OAuth client ID is public configuration; client secrets are never used in the browser.
-2. The frontend does not decide whether an account is authorized. Apps Script verifies the token and checks the server-side allowlist.
-3. ID tokens are stored only in `sessionStorage`, not `localStorage`.
-4. Backend authorization is required independently of the login overlay. Removing/hiding the overlay must never grant access.
-5. Failed/expired/incorrect-audience/unverified-email/non-allowlisted credentials are rejected.
-6. Auth audit events must not contain ID tokens, OAuth access tokens, passwords, Gmail bodies, Journal text, or other private payloads.
-7. Existing AEGIS production must not be cut over until protected endpoint routing and frontend authenticated request wiring are complete.
+1. The Google OAuth client ID may be public; the allowlist must remain server-side.
+2. Sensitive AEGIS operations must ultimately be authenticated server-side, not merely hidden by frontend UI.
+3. Identity tokens must not be placed in query strings or localStorage.
+4. Sensitive reads will migrate from unauthenticated GET routes to authenticated POST operations carrying `auth_token` in the request body.
+5. The dashboard must not hydrate cached or current private state before authentication succeeds once enforcement is enabled.
+6. HORIZON 2.5.1 boundaries must remain intact throughout AUTH-1 integration.
+7. Retired `horizon_data.json` mechanisms may not be restored as part of authentication work.
+8. Logout clears the browser token; token expiry or failed revalidation returns the UI to the authentication gate.
 
-## Scope model
+## Current implementation gap
 
-Initial AEGIS scopes:
+The repository's checked-in root `Code.gs` was discovered to lag the validated 2.5.1 production Apps Script runtime. AUTH-1 backend routing must therefore be integrated against the authoritative 2.5.1 production source, not the stale pre-cutover repository copy. This reconciliation is a mandatory pre-cutover gate.
 
-- `dashboard.read`
-- `horizon.generate`
-- `calendar.read`
-- `calendar.write`
-- `tasks.read`
-- `tasks.write`
-- `gmail.read`
-- `kinetic.read`
-- `sentinel.read`
-- `spark.write`
+## Required cutover sequence
 
-These are AEGIS application authorization scopes, not Google OAuth API scopes.
+1. Set the Script Properties above with `AEGIS_AUTH_REQUIRED=false`.
+2. Add `apps-script/AEGIS_Auth.gs` to the same Apps Script project as the 2.5.1 `Code.gs`.
+3. Integrate the auth action/router hooks into the authoritative 2.5.1 runtime.
+4. Convert sensitive frontend reads to `AEGIS_AUTH.securePost(...)`.
+5. Gate dashboard bootstrap until `AEGIS_AUTH.refresh()` returns authenticated.
+6. Validate allowlisted login.
+7. Validate non-allowlisted denial.
+8. Validate expired/invalid token denial.
+9. Validate logout and reload behavior.
+10. Validate HORIZON, Calendar, Tasks, Gmail, KINETIC, SENTINEL-FIN, and SPARK actions through authenticated requests.
+11. Confirm public health/reverse-geocode endpoints reveal no private state.
+12. Set `AEGIS_AUTH_REQUIRED=true` only after all tests pass.
+13. Deploy the new Apps Script version and authenticated GitHub Pages frontend together.
 
-## Remaining AUTH-1 cutover work
+## Exit criteria
 
-Before production activation:
-
-1. Create a Google OAuth **Web application** client ID.
-2. Add the GitHub Pages origin to Authorized JavaScript origins.
-3. Set `AEGIS_GOOGLE_CLIENT_ID` and `AEGIS_AUTH_ALLOWED_EMAILS` in Apps Script Script Properties.
-4. Add `AEGIS_Auth.gs` to the deployed Apps Script project.
-5. Add auth action handling to `Code.gs` before all protected operations.
-6. Route sensitive AEGIS reads through authenticated POST requests so private GET endpoints are not bypassable.
-7. Wire `index.html` to load Google Identity Services, auth config, auth client/UI, and auth CSS.
-8. Do not bootstrap private dashboard data until authentication is `AUTHENTICATED`.
-9. Validate unauthorized, wrong-account, expired-token, logout, refresh, and authorized-account cases.
-10. Only then merge/cut over the auth branch.
-
-## Audit history foundation
-
-`AEGIS_Auth.gs` emits structured events including:
-
-- `LOGIN_SUCCESS`
-- `LOGIN_FAILURE`
-- `SESSION_VALIDATED`
-- `LOGOUT`
-- `AUTHORIZATION_DENIED`
-
-If `AEGIS_AUTH_AUDIT_SHEET_ID` is configured, those events are appended to an `Auth Events` worksheet. This is the initial storage contract for the future AEGIS Security / Login History screen.
-
-## Current verdict
-
-AUTH-1 identity and authorization primitives are implemented. Production enforcement remains intentionally gated until authenticated routing is wired end-to-end.
+AUTH-1 is complete only when direct unauthenticated calls cannot access or mutate private AEGIS/GPOS state, while the approved Google account can perform the currently supported operations normally.
