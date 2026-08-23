@@ -8,6 +8,9 @@
 - Auth baseline: **AUTH-1 enforced**
 - AQ baseline: **AQ-1.1 validated**
 - Calendar contract: **AEGIS_CALENDAR_ACTION_V2**
+- Generated production deployment artifact: `AEGIS_2.6.2_AQ2.1_PRODUCTION_Code.gs`
+- Deployment artifact SHA-256: `4b06a8d0e49bdcf06179a17ba0f9cbc8ac338e2fcf0c6d6923e3c38a113ccb7e`
+- JavaScript syntax validation: **PASS**
 
 ## Permanent version-label convention
 
