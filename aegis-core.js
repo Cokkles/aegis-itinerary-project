@@ -1,6 +1,6 @@
 window.AEGIS=window.AEGIS||{};
 AEGIS.Core=(()=>{
-  const BUILD='2.6.0';
+  const BUILD='2.6.2';
   const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
   const TOKEN_KEY='aegis_auth_token';
   const cacheKey=k=>'aegis_cache_'+k;
@@ -28,7 +28,7 @@ AEGIS.Core=(()=>{
       #aegisAuthGate{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 20%,#123245 0,#08151e 46%,#050b10 100%);color:#eef8ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
       #aegisAuthGate[hidden]{display:none!important}
       .aegis-auth-card{width:min(460px,100%);border:1px solid #24495c;border-radius:22px;background:rgba(8,20,29,.96);box-shadow:0 22px 70px rgba(0,0,0,.48);padding:34px;text-align:center}
-      .aegis-auth-mark{width:72px;height:72px;object-fit:contain;margin-bottom:14px;filter:drop-shadow(0 0 18px rgba(77,205,255,.18))}
+      .aegis-auth-mark{width:72px;height:72px;object-fit:contain;margin-bottom:14px;filter:none}
       .aegis-auth-card h1{font-size:28px;letter-spacing:.04em;margin:0 0 8px}.aegis-auth-card p{color:#a8bdc9;line-height:1.5;margin:0 0 22px}
       #aegisGoogleButton{display:flex;justify-content:center;min-height:44px}.aegis-auth-status{min-height:22px;margin-top:18px;color:#8fdcff;font-size:13px}.aegis-auth-error{color:#ff9b9b}
       #aegisAuthBadge{position:fixed;right:18px;bottom:18px;z-index:5000;display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid #285064;border-radius:999px;background:rgba(7,18,26,.93);box-shadow:0 8px 28px rgba(0,0,0,.32);color:#dcecf5;font:12px/1.2 Inter,system-ui,sans-serif}
@@ -37,7 +37,7 @@ AEGIS.Core=(()=>{
     document.head.appendChild(style);
     const gate=document.createElement('div');
     gate.id='aegisAuthGate';
-    gate.innerHTML=`<div class="aegis-auth-card"><img class="aegis-auth-mark" src="aegis-mark.png" alt="AEGIS"><h1>AEGIS SECURE ACCESS</h1><p>Sign in with an authorized Google account to unlock GEMINI-POS workspace data and controls.</p><div id="aegisGoogleButton"></div><div class="aegis-auth-status" id="aegisAuthStatus">Initializing secure session…</div></div>`;
+    gate.innerHTML=`<div class="aegis-auth-card"><img class="aegis-auth-mark" src="aegis-mark-v3.svg?v=2.6.2" alt="AEGIS"><h1>AEGIS SECURE ACCESS</h1><p>Sign in with an authorized Google account to unlock GEMINI-POS workspace data and controls.</p><div id="aegisGoogleButton"></div><div class="aegis-auth-status" id="aegisAuthStatus">Initializing secure session…</div></div>`;
     document.body.appendChild(gate);
     const badge=document.createElement('div');
     badge.id='aegisAuthBadge';badge.hidden=true;
