@@ -2,6 +2,24 @@
    AQ-2 — CONVERSATIONAL CALENDAR CONTROL
    ============================================================ */
 
+function callAegisCalendarGeminiV2_(prompt) {
+  var delays = [0, 1500, 3500];
+  var lastErr = null;
+  for (var attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) Utilities.sleep(delays[attempt]);
+    try {
+      return callGemini(prompt);
+    } catch (err) {
+      lastErr = err;
+      var msg = String(err && err.message || err || "");
+      var transient = /Gemini API HTTP (429|503)\b/i.test(msg);
+      if (!transient || attempt === delays.length - 1) throw err;
+      Logger.log("AQ-2 Calendar Gemini transient failure; retry " + (attempt + 2) + "/" + delays.length + ": " + msg);
+    }
+  }
+  throw lastErr || new Error("AQ-2 Calendar Gemini request failed.");
+}
+
 function clipAegisCalendarTextV2_(value, maxChars) {
   var text = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
   return text.length > maxChars ? text.slice(0, maxChars) + "…" : text;
@@ -25,7 +43,7 @@ function resolveAegisCalendarIntentV2_(question) {
     '{"operation":"READ|CREATE|UPDATE|DELETE","range_start":"ISO|null","range_end":"ISO|null","target_text":"string","event":{"title":"string","start":"ISO|null","end":"ISO|null","all_day":false,"location":"string","description":"string"},"changes":{"title":"string|null","start":"ISO|null","end":"ISO|null","location":"string|null","description":"string|null"}}\n' +
     "Rules: READ includes schedule, availability, free time, and what-is-on-my-calendar questions. For CREATE resolve title and time; if duration is omitted use 60 minutes. For UPDATE/DELETE put identifying words in target_text and use range_start/range_end when the user names a date. Do not invent location/description. All timed ISO values must include timezone offset.\n\n" +
     "USER REQUEST: " + question;
-  var obj = parseAegisCalendarJsonV2_(callGemini(prompt));
+  var obj = parseAegisCalendarJsonV2_(callAegisCalendarGeminiV2_(prompt));
   var op = String(obj.operation || "READ").toUpperCase();
   if (["READ","CREATE","UPDATE","DELETE"].indexOf(op) < 0) op = "READ";
   obj.operation = op;
@@ -66,7 +84,7 @@ function findAegisCalendarCandidatesV2_(events, targetText) {
 function buildAegisCalendarReadAnswerV2_(question, events, range) {
   var prompt = "You are AEGIS Calendar in READ-ONLY mode. Answer the user's calendar question using ONLY the supplied verified event list. If there are no matching events, say so. Do not claim a mutation. Use concise Markdown.\n\n" +
     "TIMEZONE: " + CONFIG.TIMEZONE + "\nRANGE: " + range.start.toISOString() + " to " + range.end.toISOString() + "\nEVENTS: " + JSON.stringify(events) + "\n\nQUESTION: " + question;
-  return callGemini(prompt);
+  return callAegisCalendarGeminiV2_(prompt);
 }
 
 function validateAegisCalendarCreateV2_(eventObj) {
