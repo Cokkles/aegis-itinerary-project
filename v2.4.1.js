@@ -2,20 +2,22 @@
 (function(){
   if(!window.AEGIS) return;
 
-  const UI_VERSION='2.6.0';
+  const UI_VERSION='2.6.1';
   const MARK='aegis-mark-v3.svg?v=2.6.0';
+  const AI_MODES=['general','career','finance','logistics','system'];
+  let aiMode='general';
 
   function e(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
   function applyIdentity(){
-    document.querySelectorAll('.brand-icon').forEach(img=>{img.src=MARK;img.alt='AEGIS';});
+    document.querySelectorAll('.brand-icon,.aegis-auth-mark').forEach(img=>{img.src=MARK;img.alt='AEGIS';});
     let icon=document.querySelector('link[rel="icon"]');
     if(!icon){icon=document.createElement('link');icon.rel='icon';document.head.appendChild(icon);}
     icon.type='image/svg+xml';
     icon.href=MARK;
     const version=document.querySelector('.nav-version');
-    if(version)version.textContent='AEGIS v2.6 • AUTH-1';
-    document.documentElement.dataset.aegisUi='2.6';
+    if(version)version.textContent='AEGIS v2.6.1 • AUTH-1';
+    document.documentElement.dataset.aegisUi='2.6.1';
   }
 
   window.renderHealth=function(){
@@ -80,6 +82,86 @@
     renderHealth();
   };
 
+  function aiHistoryKey(mode){return 'aegis_ai_history_v1_'+mode;}
+  function loadAiHistory(mode){try{return JSON.parse(sessionStorage.getItem(aiHistoryKey(mode))||'[]')}catch{return[]}}
+  function saveAiHistory(mode,history){try{sessionStorage.setItem(aiHistoryKey(mode),JSON.stringify(history.slice(-8)))}catch{}}
+
+  function installAiQueryView(){
+    if(document.getElementById('aiQuery'))return;
+    const navGroups=document.querySelectorAll('.nav-group');
+    const tools=[...navGroups].find(g=>g.querySelector('small')?.textContent.trim()==='TOOLS');
+    if(tools){
+      const btn=document.createElement('button');
+      btn.className='nav-item';btn.dataset.view='aiQuery';btn.innerHTML='◇ <span>Ask AEGIS</span>';
+      btn.addEventListener('click',()=>setView('aiQuery'));
+      tools.insertBefore(btn,tools.firstElementChild?.nextSibling||null);
+    }
+    const shell=document.querySelector('main.shell');
+    if(!shell)return;
+    const section=document.createElement('section');
+    section.className='view';section.id='aiQuery';
+    section.innerHTML=`<section class="panel ai-query-panel"><div class="panel-head"><div><h2>ASK AEGIS</h2><p class="muted">Authenticated GEMINI-POS query gateway • read-only in AQ-1</p></div><span class="source-badge">SESSION MEMORY ONLY</span></div><div class="ai-mode-row" id="aiModeRow">${AI_MODES.map(m=>`<button class="mini ai-mode ${m==='general'?'active':''}" data-ai-mode="${m}">${m.toUpperCase()}</button>`).join('')}</div><div class="ai-context-note" id="aiContextNote"></div><div class="ai-thread" id="aiThread"></div><div class="ai-compose"><textarea id="aiQuestion" placeholder="Ask AEGIS something… Shift+Enter for a new line."></textarea><div class="inline-actions"><button class="mini" id="aiClear">Clear Session</button><button class="mini primary" id="aiSend">Ask AEGIS</button></div></div></section>`;
+    shell.appendChild(section);
+    document.querySelectorAll('[data-ai-mode]').forEach(btn=>btn.addEventListener('click',()=>switchAiMode(btn.dataset.aiMode)));
+    document.getElementById('aiSend')?.addEventListener('click',sendAiQuery);
+    document.getElementById('aiClear')?.addEventListener('click',clearAiHistory);
+    document.getElementById('aiQuestion')?.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();sendAiQuery();}});
+    renderAiThread();
+  }
+
+  function aiModeDescription(mode){
+    const map={
+      general:'Calendar, Tasks, active notes, bounded SPARK state, and KINETIC display context.',
+      career:'Career/technical mentoring using active notes, current Tasks/Calendar, and bounded SPARK context. No invented career history.',
+      finance:'SENTINEL-FIN bounded financial summary only. No PRISM internals and no transactions.',
+      logistics:'Calendar, Tasks, and 7-day Gmail metadata. Email bodies are not supplied.',
+      system:'AEGIS/GEMINI-POS capability and health telemetry only.'
+    };
+    return map[mode]||map.general;
+  }
+
+  function switchAiMode(mode){
+    if(!AI_MODES.includes(mode))return;
+    aiMode=mode;
+    document.querySelectorAll('[data-ai-mode]').forEach(b=>b.classList.toggle('active',b.dataset.aiMode===mode));
+    renderAiThread();
+  }
+
+  function renderAiThread(){
+    const box=document.getElementById('aiThread');if(!box)return;
+    const history=loadAiHistory(aiMode);
+    const note=document.getElementById('aiContextNote');if(note)note.textContent=aiModeDescription(aiMode);
+    box.innerHTML=history.length?history.map(item=>`<div class="ai-message ${item.role==='user'?'user':'assistant'}"><div class="ai-message-role">${item.role==='user'?'YOU':'AEGIS'}</div><div>${e(item.text).replace(/\n/g,'<br>')}</div></div>`).join(''):`<div class="ai-empty"><img src="${MARK}" alt=""><strong>Ask AEGIS</strong><span>${e(aiModeDescription(aiMode))}</span></div>`;
+    box.scrollTop=box.scrollHeight;
+  }
+
+  async function sendAiQuery(){
+    const input=document.getElementById('aiQuestion'),button=document.getElementById('aiSend');
+    const question=String(input?.value||'').trim();if(!question||!button)return;
+    const history=loadAiHistory(aiMode);
+    const pending=[...history,{role:'user',text:question}].slice(-8);
+    saveAiHistory(aiMode,pending);input.value='';renderAiThread();
+    button.disabled=true;button.textContent='Thinking…';
+    try{
+      const result=await AEGIS.Core.fetchJson(WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ai_query',mode:aiMode,question,history})},60000);
+      if(result?.status!=='success'||!result.answer)throw new Error(result?.error||'AEGIS AI query failed.');
+      const updated=[...pending,{role:'assistant',text:String(result.answer)}].slice(-8);
+      saveAiHistory(aiMode,updated);renderAiThread();
+      const sources=(result.context_sources||[]).filter(x=>x.status==='AVAILABLE').map(x=>x.source).join(', ');
+      if(sources)toast('AEGIS context: '+sources);
+    }catch(err){
+      const failed=[...pending,{role:'assistant',text:'Query failed: '+(err.message||String(err))}].slice(-8);
+      saveAiHistory(aiMode,failed);renderAiThread();
+      localNotification('AEGIS AI query failed',err.message||String(err),'warning','ai-query');
+    }finally{button.disabled=false;button.textContent='Ask AEGIS';input?.focus();}
+  }
+
+  function clearAiHistory(){
+    try{sessionStorage.removeItem(aiHistoryKey(aiMode))}catch{}
+    renderAiThread();toast('AQ-1 session cleared');
+  }
+
   applyIdentity();
+  installAiQueryView();
   setTimeout(()=>{try{renderHorizonTasks();}catch{}},0);
 })();
