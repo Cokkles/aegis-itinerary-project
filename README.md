@@ -1,55 +1,28 @@
-# ⚡ AEGIS Central Control & Tracking Dispatcher (PWA)
+# AEGIS Itinerary Project
 
-A responsive, central command dispatcher and live briefing dashboard built with HTML, CSS, JavaScript, Google Apps Script, and Google Drive JSON feeds.
+AEGIS is the presentation and interaction layer for GEMINI-POS. The current production architecture uses the canonical HORIZON living briefing, bounded SPARK/KINETIC/SENTINEL interfaces, Google Workspace integrations, and an AUTH-1 Google Identity security boundary.
 
----
+## Current security state
 
-## 📁 Repository Structure
+AEGIS AUTH-1 uses Google Identity Services plus a server-side Apps Script email allowlist. Workspace-backed reads and writes are authorized by the Apps Script backend; the frontend login screen is not treated as the security boundary.
 
-```
-├── index.html       # AEGIS Master Dashboard & Dispatcher
-├── manifest.json    # Web App Manifest for PWA installation
-├── sw.js            # Service Worker for offline asset caching
-├── Code.gs          # Google Apps Script Webhook & Feed Engine
-├── icon-192.png     # PWA App Icon (192x192)
-├── icon-512.png     # PWA App Icon (512x512)
-└── favicon.ico      # Favicon
-```
+Production backend target: `2.6.0`
 
----
+Authentication behavior:
 
-## 🚀 Quick Setup & Deployment Guide
+- Google OAuth Web Client ID is public configuration.
+- Authorized email addresses remain private in Apps Script Script Properties.
+- Browser ID token storage is session-only (`sessionStorage`).
+- Private AEGIS data is transported through authenticated POST requests once enforcement is enabled.
+- Direct private Apps Script GET routes fail closed under AUTH-1.
+- Logout/expired identity state removes browser access to Workspace-backed UI.
 
-### Step 1: Deploy Google Apps Script Webhook
-1. Go to [script.google.com](https://script.google.com) and create a new project.
-2. Copy the code from `Code.gs` into the Apps Script editor.
-3. Click **Deploy** -> **New deployment**.
-4. Select **Web app**:
-   - **Execute as**: *Me*
-   - **Who has access**: *Anyone*
-5. Copy the deployed Web App URL (`https://script.google.com/macros/s/.../exec`).
-6. Update the `WEBHOOK_URL` constant on line ~880 in `index.html` with your deployment URL.
+See `docs/security/AEGIS-AUTH-PHASE-A1-CUTOVER.md` and `docs/security/AEGIS-AUTH-PHASE-A1-TEST-MATRIX.md` for deployment and validation requirements.
 
----
+## HORIZON
 
-### Step 2: Publish to GitHub Pages
-1. Create a new public repository on GitHub named `aegis-dashboard`.
-2. Commit and push all repository files:
-   ```bash
-   git init
-   git add .
-   git commit -m "Deploy AEGIS PWA Control Panel"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/aegis-dashboard.git
-   git push -u origin main
-   ```
-3. In GitHub, navigate to **Settings** -> **Pages**.
-4. Set **Source** to `Deploy from a branch`, choose branch `main` and folder `/ (root)`, then click **Save**.
-5. Your live PWA dashboard will be active at:
-   `https://YOUR_USERNAME.github.io/aegis-dashboard/`
+HORIZON V2.5 is the canonical current briefing integration. Retired mechanisms such as `horizon_data.json`, `refreshHorizonDataFeed()`, and `pruneHorizonJsonFile()` remain prohibited as runtime authority.
 
----
+## Repository authority
 
-### Step 3: Install PWA on Mobile / Desktop
-* **iOS (Safari)**: Open `https://YOUR_USERNAME.github.io/aegis-dashboard/`, tap the **Share** icon -> **Add to Home Screen**.
-* **Android (Chrome)**: Open the URL, tap the **three dots menu** -> **Install App** or **Add to Home Screen**.
+AEGIS code and deployment documentation belong in this repository. GEMINI-POS cross-system architecture, contracts, roadmap, and subsystem authority live in the private `Cokkles/GEMINI-POS` engineering repository.
