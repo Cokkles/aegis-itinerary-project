@@ -1,66 +1,71 @@
-# AEGIS AUTH-1 — Production Cutover Plan
+# AEGIS AUTH-1 — Identity, Session & Authorization Cutover
 
-Status: BACKEND CANDIDATE READY / ENFORCEMENT NOT YET ENABLED
+Status: ENFORCEMENT ENABLED / FRONTEND CUTOVER IN PROGRESS
 Date: 2026-08-23
-Baseline: deployed HORIZON/AEGIS backend 2.5.1
-Target backend: 2.6.0 / AUTH-1
+Backend: Apps Script 2.6.0
+Auth: Google Identity Services + server-side allowlist
 
-## Current configuration
+## Production state
 
-The Apps Script project has been prepared with the AUTH-1 Script Properties:
+- `AEGIS_GOOGLE_CLIENT_ID` configured in Apps Script Script Properties.
+- `AEGIS_AUTH_ALLOWED_EMAILS` configured privately in Apps Script Script Properties.
+- `AEGIS_AUTH_REQUIRED=true` enabled and Apps Script redeployed.
+- Public `auth_config` returns Google provider, configuration present, allowlist present, AUTH-1, backend 2.6.0.
+- Private Apps Script GET routes fail closed once enforcement is enabled; protected reads are POST-only.
 
-- `AEGIS_GOOGLE_CLIENT_ID`
-- `AEGIS_AUTH_ALLOWED_EMAILS`
+## Frontend boundary
 
-The private allowlist remains server-side and must never be committed to the public repository.
+`aegis-core.js` is now the AUTH-1 transport boundary for the PWA:
 
-## Backend candidate
+1. Fetch public `auth_config`.
+2. Hide Workspace-backed UI while authentication is unresolved.
+3. Load Google Identity Services.
+4. Obtain a Google ID token from the approved web OAuth client.
+5. Validate that token server-side through `auth_login` / `auth_session`.
+6. Store the ID token in `sessionStorage` only.
+7. Translate legacy private GET calls into authenticated POST actions.
+8. Attach `auth_token` to all protected AEGIS POST operations.
+9. Clear the browser session on logout or rejected/expired identity state.
 
-A full AUTH-1 candidate was generated from the exact deployed 2.5.1 Apps Script source, not the stale historical `main/Code.gs` copy. JavaScript syntax validation passed before deployment packaging.
+The allowlist never enters GitHub or browser configuration.
 
-AUTH-1 adds:
+## Protected read mapping
 
-- public `auth_config` bootstrap endpoint exposing only the non-secret Google client ID and auth status;
-- Google ID-token verification through Google's token-info endpoint;
-- checks for audience, issuer, expiry, verified email, and server-side allowlist;
-- `auth_login`, `auth_session`, and `auth_logout` actions;
-- structured application scopes;
-- optional auth-event logging;
-- protected POST read endpoints (`get_dashboard`, `get_intelligence`, `get_notifications`, `get_recent_finance`, `get_health`, `get_capabilities`, `get_latest_horizon`);
-- server-side authorization on all existing write actions;
-- private GET routes blocked once enforcement is enabled so tokens never need to appear in URLs;
-- `AEGIS_AUTH_REQUIRED` feature flag for staged rollout.
+- `getHorizonData` / `getSummary` -> `get_dashboard`
+- `getIntelligence` -> `get_intelligence`
+- `capabilities` -> `get_capabilities`
+- `getNotifications` -> `get_notifications`
+- `getRecentFinance` -> `get_recent_finance`
+- `health` -> `get_health`
+- `getLatestHorizonBriefing` -> `get_latest_horizon`
 
-## Important rollout invariant
+`auth_config` and non-Workspace reverse geocoding remain public.
 
-Do **not** set `AEGIS_AUTH_REQUIRED=true` until the authenticated frontend has been deployed and validated.
+## PWA cache migration
 
-The backend should first be deployed with enforcement false. Existing AEGIS continues working during this compatibility period while the auth endpoints are tested.
+Service worker cache rotated to `aegis-dashboard-v2.6.0-auth1`. Apps Script and Google Identity traffic are never service-worker cached. Old PWA asset caches are deleted on activation.
 
-## Deployment sequence
+An installed client may require one additional reload while the new worker activates and claims the page. A hard refresh is the fastest validation path.
 
-1. Preserve the current Apps Script deployment/version as rollback.
-2. Replace `Code.gs` with the full AUTH-1 2.6.0 candidate generated from the deployed 2.5.1 baseline.
-3. Confirm Script Property `AEGIS_AUTH_REQUIRED` is absent or explicitly `false`.
-4. Save and deploy a new version using the existing Web App deployment/URL.
-5. Verify `?action=auth_config` returns `configured:true`, `allowlist_configured:true`, `enforcement_required:false`, and backend `2.6.0`.
-6. Validate `auth_login` and `auth_session` with the approved Google account.
-7. Validate a non-allowlisted account is denied.
-8. Deploy the auth-gated GitHub Pages frontend.
-9. Confirm authenticated dashboard reads/writes operate through protected POST actions.
-10. Set `AEGIS_AUTH_REQUIRED=true` only after the frontend passes.
-11. Re-test unauthorized GET/POST, approved login, expired/invalid token, logout, Calendar write, HORIZON generation, Tasks update, and SPARK/KINETIC dispatch.
-12. Mark AUTH-1 complete only after all security gates pass.
+## Required validation
 
-## Security invariants
+1. Open the GitHub Pages AEGIS URL in a fresh/private browser session.
+2. Confirm the dashboard is hidden and the AEGIS Secure Access gate appears.
+3. Sign in with an allowlisted Google account.
+4. Confirm dashboard, Calendar, Tasks, HORIZON, finance, intelligence, notifications and health load normally.
+5. Confirm Calendar event resolution/create works under authenticated POST.
+6. Confirm HORIZON generation works under `horizon.generate` scope.
+7. Sign out and confirm Workspace data disappears and page returns to login gate.
+8. Attempt a direct private Apps Script GET and confirm `AEGIS_AUTH_REQUIRED`.
+9. Attempt a non-allowlisted Google account and confirm denial.
+10. Confirm invalid/expired identity state cannot continue using private endpoints.
 
-- Google client ID is public configuration, not a secret.
-- Email allowlist stays only in Script Properties.
-- ID tokens are kept in browser `sessionStorage`, not persistent local storage.
-- Auth tokens are sent only in POST request bodies, never URL query parameters.
-- Backend authorization is authoritative; the frontend login overlay alone is never considered a security boundary.
-- Existing HORIZON V2.5/2.5.1 legacy retirement and bounded-domain behavior must remain intact.
+## Remaining AUTH-1 work
+
+- Remove temporary frontend/backend presentation text still referring to v2.4 where appropriate.
+- Add first-class login/session history UI from structured auth audit events.
+- Sync the exact deployed full Apps Script 2.6.0 source back to canonical repository `Code.gs` after final validation.
 
 ## Rollback
 
-Rollback to the immediately prior 2.5.1 Apps Script deployment if AUTH-1 staging causes regressions. Do not restore any retired HORIZON JSON behavior during rollback.
+If the authenticated frontend cannot bootstrap, temporarily set `AEGIS_AUTH_REQUIRED=false` and redeploy the current 2.6.0 Apps Script version. Do not roll back to a pre-HORIZON-V2.5 backend and do not reactivate retired JSON paths.
