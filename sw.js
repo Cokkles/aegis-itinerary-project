@@ -1,4 +1,4 @@
-const CACHE_NAME='aegis-dashboard-v2.6.1-ui1';
+const CACHE_NAME='aegis-dashboard-v2.6.1-aq1';
 const STATIC=['./manifest.json','./icon-192.png','./icon-512.png','./aegis-mark-v3.svg?v=2.6.0','./styles.css?v=2.4.1','./v2.4.1.css?v=2.4.1','./aegis-core.js?v=2.6.0','./app.js?v=2.4.1','./v2.4.1.js?v=2.4.1','./quotes.js?v=2.4.1','./quotes-1.js?v=2.4.1','./quotes-2.js?v=2.4.1','./quotes-3.js?v=2.4.1','./quotes-4.js?v=2.4.1','./quotes-5.js?v=2.4.1','./quotes-6.js?v=2.4.1','./quotes-7.js?v=2.4.1','./quotes-extra.js?v=2.4.1'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
