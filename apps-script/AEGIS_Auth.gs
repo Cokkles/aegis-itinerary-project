@@ -2,13 +2,20 @@
  * AEGIS AUTH-1 — Google identity verification and authorization boundary.
  * Add this as a separate Apps Script file in the same project as Code.gs.
  *
- * Script Properties required:
+ * Script Properties required before enforcement:
  *   AEGIS_GOOGLE_CLIENT_ID      Google OAuth Web Client ID
- *   AEGIS_AUTH_ALLOWED_EMAILS   Comma-separated allowlist
+ *   AEGIS_AUTH_ALLOWED_EMAILS   Comma-separated private allowlist
+ *   AEGIS_AUTH_REQUIRED         true only after production validation
  * Optional:
- *   AEGIS_AUTH_SCOPES           Comma-separated AEGIS scopes
+ *   AEGIS_AUTH_SCOPES           Comma-separated AEGIS application scopes
  *   AEGIS_AUTH_AUDIT_SHEET_ID   Sheet used for durable auth events
  */
+
+function isAegisAuthRequired_() {
+  var value = String(PropertiesService.getScriptProperties().getProperty('AEGIS_AUTH_REQUIRED') || 'false')
+    .trim().toLowerCase();
+  return value === 'true' || value === '1' || value === 'yes' || value === 'on';
+}
 
 function getAegisAuthSettings_() {
   var props = PropertiesService.getScriptProperties();
@@ -21,6 +28,17 @@ function getAegisAuthSettings_() {
   if (!clientId) throw new Error('AEGIS_GOOGLE_CLIENT_ID is not configured.');
   if (!allowed.length) throw new Error('AEGIS_AUTH_ALLOWED_EMAILS is not configured.');
   return { clientId: clientId, allowedEmails: allowed, scopes: scopes };
+}
+
+function getAegisPublicAuthStatus_() {
+  var props = PropertiesService.getScriptProperties();
+  return {
+    provider: 'google',
+    configured: !!String(props.getProperty('AEGIS_GOOGLE_CLIENT_ID') || '').trim(),
+    allowlist_configured: !!String(props.getProperty('AEGIS_AUTH_ALLOWED_EMAILS') || '').trim(),
+    enforcement_required: isAegisAuthRequired_(),
+    auth_version: 'AUTH-1'
+  };
 }
 
 function verifyAegisGoogleToken_(idToken) {
@@ -74,6 +92,9 @@ function handleAegisAuthAction_(action, contents) {
 }
 
 function authorizeAegisPayload_(contents, requiredScope) {
+  if (!isAegisAuthRequired_()) {
+    return { bypassed: true, scopes: [], user: { email: 'AUTH_NOT_ENFORCED' } };
+  }
   var verified = verifyAegisGoogleToken_(contents && contents.auth_token);
   if (requiredScope && verified.scopes.indexOf(requiredScope) === -1) {
     logAegisAuthEvent_('AUTHORIZATION_DENIED', verified.user.email, { scope: requiredScope });
@@ -87,13 +108,25 @@ function aegisScopeForAction_(action, message) {
   if (action === 'resolve_calendar_event') return 'calendar.read';
   if (action === 'mark_done') return 'tasks.write';
   if (action === 'horizon_sync' || action === 'refresh_briefing' || String(message || '').indexOf('/horizon') === 0) return 'horizon.generate';
-  if (String(message || '').match(/^\/(journal|vent|note)/i)) return 'spark.write';
+  if (action === 'getRecentFinance') return 'sentinel.read';
+  if (action === 'getHorizonData' || action === 'getSummary' || action === 'getLatestHorizonBriefing' || action === 'getNotifications' || action === 'getIntelligence') return 'dashboard.read';
+  if (String(message || '').match(/^\/(journal|vent|note|reflect|assess)/i)) return 'spark.write';
   if (String(message || '').match(/^\/calories/i)) return 'kinetic.read';
   if (String(message || '').match(/^\/(receipts|finance)/i)) return 'sentinel.read';
   if (String(message || '').match(/^\/groceries/i)) return 'tasks.write';
   if (action === 'ack_notification' || action === 'refresh_intelligence') return 'dashboard.read';
   if (action === 'install_automation_triggers') return 'dashboard.read';
   return 'dashboard.read';
+}
+
+function aegisAuthRequiredResponse_(action) {
+  return {
+    status: 'error',
+    authenticated: false,
+    code: 'AEGIS_AUTH_REQUIRED',
+    action: action || '',
+    error: 'Authentication is required for this AEGIS operation.'
+  };
 }
 
 function logAegisAuthEvent_(eventType, email, details) {
