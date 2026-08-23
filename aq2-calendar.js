@@ -1,3 +1,6 @@
+// AEGIS FRONTEND RELEASE: 2.6.2
+// Matching Apps Script backend: 2.6.2 / AQ-2.1
+// Calendar contract: AEGIS_CALENDAR_ACTION_V2
 // AEGIS AQ-2 — conversational Calendar read/write with preview + confirmation.
 (function(){
   if(!window.AEGIS?.Core) return;
