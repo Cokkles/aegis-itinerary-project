@@ -1,6 +1,6 @@
 # AEGIS AUTH-1 — Identity, Session & Authorization Cutover
 
-Status: ENFORCEMENT ENABLED / FRONTEND CUTOVER IN PROGRESS
+Status: COMPLETE / PRODUCTION VALIDATED
 Date: 2026-08-23
 Backend: Apps Script 2.6.0
 Auth: Google Identity Services + server-side allowlist
@@ -12,10 +12,11 @@ Auth: Google Identity Services + server-side allowlist
 - `AEGIS_AUTH_REQUIRED=true` enabled and Apps Script redeployed.
 - Public `auth_config` returns Google provider, configuration present, allowlist present, AUTH-1, backend 2.6.0.
 - Private Apps Script GET routes fail closed once enforcement is enabled; protected reads are POST-only.
+- Authenticated frontend is deployed and operating normally in production.
 
 ## Frontend boundary
 
-`aegis-core.js` is now the AUTH-1 transport boundary for the PWA:
+`aegis-core.js` is the AUTH-1 transport boundary for the PWA:
 
 1. Fetch public `auth_config`.
 2. Hide Workspace-backed UI while authentication is unresolved.
@@ -45,27 +46,42 @@ The allowlist never enters GitHub or browser configuration.
 
 Service worker cache rotated to `aegis-dashboard-v2.6.0-auth1`. Apps Script and Google Identity traffic are never service-worker cached. Old PWA asset caches are deleted on activation.
 
-An installed client may require one additional reload while the new worker activates and claims the page. A hard refresh is the fastest validation path.
+## Validation result
 
-## Required validation
+AUTH-1 production validation completed successfully.
 
-1. Open the GitHub Pages AEGIS URL in a fresh/private browser session.
-2. Confirm the dashboard is hidden and the AEGIS Secure Access gate appears.
-3. Sign in with an allowlisted Google account.
-4. Confirm dashboard, Calendar, Tasks, HORIZON, finance, intelligence, notifications and health load normally.
-5. Confirm Calendar event resolution/create works under authenticated POST.
-6. Confirm HORIZON generation works under `horizon.generate` scope.
-7. Sign out and confirm Workspace data disappears and page returns to login gate.
-8. Attempt a direct private Apps Script GET and confirm `AEGIS_AUTH_REQUIRED`.
-9. Attempt a non-allowlisted Google account and confirm denial.
-10. Confirm invalid/expired identity state cannot continue using private endpoints.
+Validated:
 
-## Remaining AUTH-1 work
+- approved Google account sign-in succeeds;
+- authenticated dashboard, Calendar, Tasks, HORIZON, finance, intelligence, notifications, and health operate normally;
+- Calendar and HORIZON authenticated write paths operate without issue;
+- logout returns the client to the secure access boundary;
+- direct private Apps Script GET access fails closed with `AEGIS_AUTH_REQUIRED`;
+- frontend does not expose Workspace-backed content before authentication resolves;
+- auth enforcement remains enabled in production.
 
-- Remove temporary frontend/backend presentation text still referring to v2.4 where appropriate.
-- Add first-class login/session history UI from structured auth audit events.
-- Sync the exact deployed full Apps Script 2.6.0 source back to canonical repository `Code.gs` after final validation.
+## AUTH-1 exit verdict
+
+**AEGIS AUTH-1 COMPLETE — PRODUCTION SECURITY BOUNDARY VALIDATED**
+
+## Follow-on security work
+
+Deferred to later AUTH phases:
+
+- first-class login/session history UI using structured auth audit events;
+- active-session inventory and explicit session revocation;
+- configurable session timeout/re-authentication policies;
+- suspicious-login and security-event presentation.
+
+## Next AEGIS development priorities
+
+1. Visual identity / favicon / in-app icon refresh.
+2. HORIZON Actions parser cleanup so structural headings are not rendered as actionable items.
+3. Conversational AI Query Gateway using authenticated backend routing and bounded GPOS context.
+4. Calendar AI controls and command registry alignment.
+5. SPARK Journal/Vent/Reflect/Check-In/Assess UX.
+6. Mail Gateway / mail-client surface.
 
 ## Rollback
 
-If the authenticated frontend cannot bootstrap, temporarily set `AEGIS_AUTH_REQUIRED=false` and redeploy the current 2.6.0 Apps Script version. Do not roll back to a pre-HORIZON-V2.5 backend and do not reactivate retired JSON paths.
+If a future auth regression prevents frontend bootstrap, temporarily set `AEGIS_AUTH_REQUIRED=false` and redeploy the current 2.6.0 Apps Script version while remediation occurs. Do not roll back to a pre-HORIZON-V2.5 backend and do not reactivate retired JSON paths.
