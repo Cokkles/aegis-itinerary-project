@@ -2,12 +2,25 @@
   'use strict';
 
   const DEFAULT_CONFIG = Object.freeze({
-    enabled: false,
-    sessionEndpoint: '',
-    loginEndpoint: '',
-    logoutEndpoint: '',
-    loginRedirectParam: 'return_to',
-    requestCredentials: 'include'
+    enabled: true,
+    provider: 'google',
+    clientId: '',
+    backendEndpoint: '',
+    tokenStorageKey: 'aegis_google_id_token',
+    sessionStorageKey: 'aegis_auth_session',
+    loginAutoPrompt: false,
+    scopes: [
+      'dashboard.read',
+      'horizon.generate',
+      'calendar.read',
+      'calendar.write',
+      'tasks.read',
+      'tasks.write',
+      'gmail.read',
+      'kinetic.read',
+      'sentinel.read',
+      'spark.write'
+    ]
   });
 
   const config = Object.freeze({
@@ -21,6 +34,7 @@
     user: null,
     session: null,
     scopes: [],
+    token: null,
     error: null
   };
 
@@ -50,94 +64,171 @@
     emit();
   }
 
-  async function fetchSession() {
+  function persistToken(token) {
+    state.token = token || null;
+    try {
+      if (token) sessionStorage.setItem(config.tokenStorageKey, token);
+      else sessionStorage.removeItem(config.tokenStorageKey);
+    } catch (_) {}
+  }
+
+  function restoreToken() {
+    try { return sessionStorage.getItem(config.tokenStorageKey) || ''; }
+    catch (_) { return ''; }
+  }
+
+  async function backend(payload, timeoutMs = 15000) {
+    if (!config.backendEndpoint) throw new Error('AEGIS auth backend endpoint is not configured.');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(config.backendEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`Authentication backend returned HTTP ${response.status}`);
+      const json = await response.json();
+      if (json.status === 'error' || json.error) throw new Error(json.error || 'Authentication failed.');
+      return json;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function validateToken(token) {
+    if (!token) return null;
+    const result = await backend({ action: 'auth_session', auth_token: token });
+    if (!result || result.authenticated !== true || !result.user) return null;
+    return result;
+  }
+
+  async function refresh() {
     if (!config.enabled) {
-      setState({ status: 'DISABLED', authenticated: false, user: null, session: null, scopes: [], error: null });
+      setState({ status: 'DISABLED', authenticated: false, user: null, session: null, scopes: [], token: null, error: null });
+      return snapshot();
+    }
+    if (!config.clientId || !config.backendEndpoint) {
+      setState({ status: 'MISCONFIGURED', authenticated: false, user: null, session: null, scopes: [], error: 'Google client ID and backend endpoint are required.' });
       return snapshot();
     }
 
-    if (!config.sessionEndpoint) {
-      setState({
-        status: 'MISCONFIGURED',
-        authenticated: false,
-        user: null,
-        session: null,
-        scopes: [],
-        error: 'Authentication is enabled but no session endpoint is configured.'
-      });
+    const token = state.token || restoreToken();
+    if (!token) {
+      setState({ status: 'UNAUTHENTICATED', authenticated: false, user: null, session: null, scopes: [], error: null });
       return snapshot();
     }
 
     setState({ status: 'CHECKING', error: null });
-
     try {
-      const response = await fetch(config.sessionEndpoint, {
-        method: 'GET',
-        credentials: config.requestCredentials,
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          setState({ status: 'UNAUTHENTICATED', authenticated: false, user: null, session: null, scopes: [], error: null });
-          return snapshot();
-        }
-        throw new Error(`Session endpoint returned HTTP ${response.status}`);
-      }
-
-      const payload = await response.json();
-      if (!payload || payload.authenticated !== true || !payload.user || !payload.session) {
-        setState({ status: 'UNAUTHENTICATED', authenticated: false, user: null, session: null, scopes: [], error: null });
-        return snapshot();
-      }
-
+      const result = await validateToken(token);
+      if (!result) throw new Error('Session is not valid.');
+      persistToken(token);
       setState({
         status: 'AUTHENTICATED',
         authenticated: true,
-        user: payload.user,
-        session: payload.session,
-        scopes: Array.isArray(payload.scopes) ? payload.scopes : [],
+        user: result.user,
+        session: result.session || null,
+        scopes: Array.isArray(result.scopes) ? result.scopes : [],
         error: null
       });
-      return snapshot();
-    } catch (error) {
-      setState({
-        status: 'ERROR',
-        authenticated: false,
-        user: null,
-        session: null,
-        scopes: [],
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return snapshot();
+    } catch (err) {
+      persistToken(null);
+      setState({ status: 'UNAUTHENTICATED', authenticated: false, user: null, session: null, scopes: [], error: null });
     }
+    return snapshot();
   }
 
-  function login() {
-    if (!config.enabled || !config.loginEndpoint) return false;
-    const returnTo = window.location.href;
-    const url = new URL(config.loginEndpoint, window.location.href);
-    url.searchParams.set(config.loginRedirectParam, returnTo);
-    window.location.assign(url.toString());
+  async function handleGoogleCredential(response) {
+    const token = response && response.credential;
+    if (!token) {
+      setState({ status: 'ERROR', authenticated: false, error: 'Google did not return an identity credential.' });
+      return snapshot();
+    }
+    setState({ status: 'CHECKING', error: null });
+    try {
+      const result = await backend({ action: 'auth_login', auth_token: token });
+      if (result.authenticated !== true) throw new Error(result.error || 'Account is not authorized for AEGIS.');
+      persistToken(token);
+      setState({
+        status: 'AUTHENTICATED',
+        authenticated: true,
+        user: result.user,
+        session: result.session || null,
+        scopes: Array.isArray(result.scopes) ? result.scopes : [],
+        error: null
+      });
+    } catch (err) {
+      persistToken(null);
+      setState({ status: 'DENIED', authenticated: false, user: null, session: null, scopes: [], error: err instanceof Error ? err.message : String(err) });
+    }
+    return snapshot();
+  }
+
+  function initializeGoogle() {
+    if (!config.enabled || !config.clientId) return false;
+    if (!window.google || !google.accounts || !google.accounts.id) return false;
+    google.accounts.id.initialize({
+      client_id: config.clientId,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: false,
+      use_fedcm_for_prompt: true
+    });
+    return true;
+  }
+
+  function renderGoogleButton(element, options = {}) {
+    if (!initializeGoogle()) return false;
+    google.accounts.id.renderButton(element, {
+      theme: 'outline',
+      size: 'large',
+      type: 'standard',
+      shape: 'pill',
+      text: 'signin_with',
+      logo_alignment: 'left',
+      width: 280,
+      ...options
+    });
+    return true;
+  }
+
+  function prompt() {
+    if (!initializeGoogle()) return false;
+    google.accounts.id.prompt();
     return true;
   }
 
   async function logout() {
-    if (!config.enabled || !config.logoutEndpoint) return false;
+    const token = state.token || restoreToken();
     try {
-      await fetch(config.logoutEndpoint, {
-        method: 'POST',
-        credentials: config.requestCredentials,
-        headers: { 'Accept': 'application/json' }
-      });
-    } finally {
-      setState({ status: 'UNAUTHENTICATED', authenticated: false, user: null, session: null, scopes: [], error: null });
+      if (token && config.backendEndpoint) await backend({ action: 'auth_logout', auth_token: token });
+    } catch (_) {}
+    if (state.user && state.user.email && window.google?.accounts?.id) {
+      try { google.accounts.id.disableAutoSelect(); } catch (_) {}
     }
+    persistToken(null);
+    setState({ status: 'UNAUTHENTICATED', authenticated: false, user: null, session: null, scopes: [], error: null });
     return true;
   }
 
   function hasScope(scope) {
     return state.authenticated && state.scopes.includes(scope);
+  }
+
+  function requireScope(scope) {
+    if (!state.authenticated) throw new Error('AEGIS authentication is required.');
+    if (scope && !hasScope(scope)) throw new Error(`AEGIS authorization denied for scope: ${scope}`);
+    return true;
+  }
+
+  async function securePost(payload, timeoutMs = 30000, requiredScope = '') {
+    requireScope(requiredScope);
+    const token = state.token || restoreToken();
+    if (!token) throw new Error('AEGIS session token is unavailable.');
+    return backend({ ...payload, auth_token: token }, timeoutMs);
   }
 
   function subscribe(listener) {
@@ -149,10 +240,15 @@
   window.AEGIS_AUTH = Object.freeze({
     config,
     getState: snapshot,
-    refresh: fetchSession,
-    login,
+    refresh,
+    initializeGoogle,
+    renderGoogleButton,
+    prompt,
+    handleGoogleCredential,
     logout,
     hasScope,
+    requireScope,
+    securePost,
     subscribe
   });
 })();
