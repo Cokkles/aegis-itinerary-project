@@ -1,28 +1,30 @@
-// AEGIS PWA RELEASE: 2.6.2
-// Matching Apps Script backend: 2.6.2 / AQ-2.1
-const CACHE_NAME='aegis-dashboard-v2.6.2-aq2-stable';
+// AEGIS PWA RELEASE: 2.6.3
+// Backend compatibility is capability-driven; Apps Script 2.6.3 validated.
+const CACHE_NAME='aegis-dashboard-v2.6.3-capabilities';
 const STATIC=[
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './aegis-mark-v3.svg?v=2.6.2',
-  './styles.css?v=2.6.2',
-  './v2.4.1.css?v=2.6.2',
-  './aegis-core.js?v=2.6.2',
-  './app.js?v=2.6.2',
-  './v2.4.1.js?v=2.6.2',
-  './aq1-hotfix.js?v=2.6.2',
-  './aq2-calendar.js?v=2.6.2',
-  './aq2-stabilization.js?v=2.6.2',
-  './quotes.js?v=2.6.2',
-  './quotes-1.js?v=2.6.2',
-  './quotes-2.js?v=2.6.2',
-  './quotes-3.js?v=2.6.2',
-  './quotes-4.js?v=2.6.2',
-  './quotes-5.js?v=2.6.2',
-  './quotes-6.js?v=2.6.2',
-  './quotes-7.js?v=2.6.2',
-  './quotes-extra.js?v=2.6.2'
+  './aegis-mark-v3.svg?v=2.6.3',
+  './styles.css?v=2.6.3',
+  './v2.4.1.css?v=2.6.3',
+  './aegis-core.js?v=2.6.3',
+  './app.js?v=2.6.3',
+  './v2.4.1.js?v=2.6.3',
+  './aq1-hotfix.js?v=2.6.3',
+  './aq2-calendar.js?v=2.6.3',
+  './aq2-stabilization.js?v=2.6.3',
+  './model-routing-telemetry.js?v=2.6.3',
+  './compatibility-v2.6.3.js?v=2.6.3',
+  './quotes.js?v=2.6.3',
+  './quotes-1.js?v=2.6.3',
+  './quotes-2.js?v=2.6.3',
+  './quotes-3.js?v=2.6.3',
+  './quotes-4.js?v=2.6.3',
+  './quotes-5.js?v=2.6.3',
+  './quotes-6.js?v=2.6.3',
+  './quotes-7.js?v=2.6.3',
+  './quotes-extra.js?v=2.6.3'
 ];
 
 self.addEventListener('install',event=>event.waitUntil(
@@ -37,16 +39,18 @@ self.addEventListener('activate',event=>event.waitUntil(
 
 function runtimeBundle(){
   const files=[
-    './v2.4.1.js?v=2.6.2',
-    './aq1-hotfix.js?v=2.6.2',
-    './aq2-calendar.js?v=2.6.2',
-    './aq2-stabilization.js?v=2.6.2'
+    './v2.4.1.js?v=2.6.3',
+    './aq1-hotfix.js?v=2.6.3',
+    './aq2-calendar.js?v=2.6.3',
+    './aq2-stabilization.js?v=2.6.3',
+    './model-routing-telemetry.js?v=2.6.3',
+    './compatibility-v2.6.3.js?v=2.6.3'
   ];
   return Promise.all(files.map(file=>caches.match(file).then(r=>r||fetch(file,{cache:'no-store'}))))
     .then(async responses=>{
       const parts=[];
       for(const response of responses) parts.push(await response.text());
-      return new Response(parts.join('\n\n'),{headers:{'Content-Type':'application/javascript; charset=utf-8','X-AEGIS-Release':'2.6.2'}});
+      return new Response(parts.join('\n\n'),{headers:{'Content-Type':'application/javascript; charset=utf-8','X-AEGIS-Release':'2.6.3'}});
     });
 }
 
@@ -64,13 +68,12 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  // Normalize the legacy HTML query strings onto the 2.6.2 cache generation.
   if(url.pathname.endsWith('/aegis-core.js')){
-    event.respondWith(caches.match('./aegis-core.js?v=2.6.2').then(r=>r||fetch('./aegis-core.js?v=2.6.2',{cache:'no-store'})));
+    event.respondWith(caches.match('./aegis-core.js?v=2.6.3').then(r=>r||fetch('./aegis-core.js?v=2.6.3',{cache:'no-store'})));
     return;
   }
   if(url.pathname.endsWith('/app.js')){
-    event.respondWith(caches.match('./app.js?v=2.6.2').then(r=>r||fetch('./app.js?v=2.6.2',{cache:'no-store'})));
+    event.respondWith(caches.match('./app.js?v=2.6.3').then(r=>r||fetch('./app.js?v=2.6.3',{cache:'no-store'})));
     return;
   }
   if(url.pathname.endsWith('/v2.4.1.js')){
