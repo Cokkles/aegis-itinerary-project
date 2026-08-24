@@ -1,0 +1,1 @@
+Current runtime activation no longer depends solely on service-worker interception.
