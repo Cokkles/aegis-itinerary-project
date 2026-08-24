@@ -5,40 +5,51 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AEGIS Secure Launcher</title>
 <meta name="theme-color" content="#08151e">
-<style>
+<style id="launcherStyle">
 html,body{margin:0;min-height:100%;background:#050b10;color:#eef8ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}.card{width:min(460px,100%);box-sizing:border-box;border:1px solid #24495c;border-radius:22px;background:#08141d;box-shadow:0 22px 70px rgba(0,0,0,.48);padding:34px;text-align:center}.mark{width:72px;height:72px;object-fit:contain;margin-bottom:14px}.card h1{font-size:28px;letter-spacing:.04em;margin:0 0 8px}.card p{color:#a8bdc9;line-height:1.5;margin:0 0 20px}.status{min-height:22px;color:#8fdcff;font-size:13px;margin:14px 0 6px}.phase{color:#668898;font-size:11px;letter-spacing:.08em;margin-bottom:14px}.error{color:#ff9b9b}.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}button,a.btn{border:1px solid #31566b;border-radius:10px;background:#153446;color:#e8f5fb;padding:10px 14px;cursor:pointer;font-weight:700;text-decoration:none}#googleButton{display:flex;justify-content:center;min-height:44px;margin-top:8px}.small{margin-top:18px!important;font-size:12px;color:#668898!important}
 </style>
 </head>
 <body>
 <div class="card">
-<img class="mark" src="aegis-mark-v3.svg?v=2.6.3m" alt="AEGIS">
+<img class="mark" src="aegis-mark-v3.svg?v=2.6.3n" alt="AEGIS">
 <h1>AEGIS SECURE ACCESS</h1>
 <p>Authentication is completed before the dashboard runtime starts.</p>
 <div id="googleButton"></div>
 <div class="status" id="status">Starting secure session…</div>
 <div class="phase" id="phase">BOOT</div>
 <div class="actions" id="actions"></div>
-<p class="small">AEGIS launcher 2.6.3m • AUTH-1</p>
+<p class="small">AEGIS stable runtime 2.6.3n • AUTH-1</p>
 </div>
 <script>
 (()=>{
+const RELEASE='2.6.3n';
 const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
 const CLIENT_ID='441009275873-qnf9c9n1o3l9tl9c76t2821hm8tectfl.apps.googleusercontent.com';
 const TOKEN_KEY='aegis_auth_token';
 const $=id=>document.getElementById(id);
-let gisScript=null;
-function setPhase(p,msg,error=false){$('phase').textContent=p;$('status').textContent=msg||p;$('status').classList.toggle('error',!!error);document.documentElement.dataset.phase=p}
+let gisScript=null,runtimeStarted=false;
+function setPhase(p,msg,error=false){const ph=$('phase'),st=$('status');if(ph)ph.textContent=p;if(st){st.textContent=msg||p;st.classList.toggle('error',!!error)}document.documentElement.dataset.phase=p}
 function token(){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch{return''}}
 function saveToken(v){try{v?sessionStorage.setItem(TOKEN_KEY,v):sessionStorage.removeItem(TOKEN_KEY)}catch{}}
-async function fetchJson(payload,timeout=15000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),cache:'no-store',signal:c.signal});const text=await r.text();if(!r.ok)throw new Error('HTTP '+r.status);try{return JSON.parse(text)}catch{throw new Error('Invalid backend JSON response.')}}catch(e){if(e.name==='AbortError')throw new Error('Backend request timed out after '+Math.round(timeout/1000)+' seconds.');throw e}finally{clearTimeout(t)}}
+async function fetchWithTimeout(url,opts={},timeout=15000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeout);try{return await fetch(url,{cache:'no-store',...opts,signal:c.signal})}catch(e){if(e.name==='AbortError')throw new Error('Request timed out after '+Math.round(timeout/1000)+' seconds.');throw e}finally{clearTimeout(t)}}
+async function fetchJson(payload,timeout=15000){const r=await fetchWithTimeout(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)},timeout);const text=await r.text();if(!r.ok)throw new Error('HTTP '+r.status);try{return JSON.parse(text)}catch{throw new Error('Invalid backend JSON response.')}}
 function stopGIS(){if(gisScript){try{gisScript.onload=null;gisScript.onerror=null;gisScript.remove()}catch{}gisScript=null}}
-function showRecovery(message){setPhase('SIGN_IN_FAILED',message,true);stopGIS();$('actions').innerHTML='';const retry=document.createElement('button');retry.textContent='Retry sign-in';retry.onclick=()=>{$('actions').innerHTML='';startSignIn()};$('actions').appendChild(retry);const diag=document.createElement('a');diag.className='btn';diag.href='auth-diagnostic.html';diag.textContent='Open diagnostics';$('actions').appendChild(diag)}
+function showRecovery(message){setPhase('SIGN_IN_FAILED',message,true);stopGIS();const actions=$('actions');if(!actions)return;actions.innerHTML='';const retry=document.createElement('button');retry.textContent='Retry sign-in';retry.onclick=()=>{actions.innerHTML='';startSignIn()};actions.appendChild(retry);const diag=document.createElement('a');diag.className='btn';diag.href='auth-diagnostic.html';diag.textContent='Open diagnostics';actions.appendChild(diag)}
 function loadGIS(){return new Promise((resolve,reject)=>{if(window.google?.accounts?.id)return resolve();let settled=false,poll=null,timer=null;const done=err=>{if(settled)return;settled=true;if(poll)clearInterval(poll);if(timer)clearTimeout(timer);if(err)stopGIS();err?reject(err):resolve()};gisScript=document.createElement('script');gisScript.src='https://accounts.google.com/gsi/client';gisScript.async=true;gisScript.defer=true;gisScript.onload=()=>window.google?.accounts?.id&&done();gisScript.onerror=()=>done(new Error('Google Sign-In was blocked or failed to load.'));document.head.appendChild(gisScript);poll=setInterval(()=>window.google?.accounts?.id&&done(),100);timer=setTimeout(()=>done(new Error('Google Sign-In timed out after 10 seconds.')),10000)})}
-function enterAEGIS(){setPhase('AUTHENTICATED','Authenticated. Opening AEGIS…');stopGIS();setTimeout(()=>location.replace('./?authfirst=2.6.3m&ts='+Date.now()),150)}
 async function validateToken(idToken,phase='LOGIN_VERIFY'){setPhase(phase,phase==='SESSION_CHECK'?'Validating existing credential…':'Verifying account with AEGIS…');const j=await fetchJson({action:'auth_login',auth_token:idToken},15000);if(!j?.authenticated)throw new Error(j?.error||'Account was not authorized.');saveToken(idToken);return j}
-async function handleCredential(resp){if(!resp?.credential)return showRecovery('Google did not return a usable credential.');try{await validateToken(resp.credential);enterAEGIS()}catch(e){saveToken('');showRecovery(e.message||String(e))}}
+function loadStyle(href){return new Promise((resolve,reject)=>{if([...document.styleSheets].some(s=>String(s.href||'').includes(href.split('?')[0])))return resolve();const l=document.createElement('link');l.rel='stylesheet';l.href=href;l.onload=resolve;l.onerror=()=>reject(new Error('Failed to load '+href));document.head.appendChild(l)})}
+function loadScript(name){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=name+(name.includes('?')?'&':'?')+'v='+RELEASE;s.async=false;s.dataset.aegisStableRuntime=RELEASE;s.onload=resolve;s.onerror=()=>reject(new Error('Failed to load '+name));document.body.appendChild(s)})}
+async function mountDashboard(){if(runtimeStarted)return;runtimeStarted=true;setPhase('RUNTIME_LOADING','Loading authenticated AEGIS runtime…');stopGIS();try{
+  const r=await fetchWithTimeout('./index.html?stableShell='+RELEASE+'&ts='+Date.now(),{},10000);if(!r.ok)throw new Error('Dashboard shell HTTP '+r.status);const html=await r.text();const doc=new DOMParser().parseFromString(html,'text/html');doc.querySelectorAll('script').forEach(x=>x.remove());
+  const styles=[...doc.head.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute('href')).filter(Boolean);await Promise.all(styles.map(loadStyle));document.title=doc.title||'AEGIS Central Control';document.body.innerHTML=doc.body.innerHTML;document.getElementById('launcherStyle')?.remove();
+  const scripts=['quotes.js','quotes-1.js','quotes-2.js','quotes-3.js','quotes-4.js','quotes-5.js','quotes-6.js','quotes-7.js','quotes-extra.js','aegis-core.js'];for(const s of scripts)await loadScript(s);
+  if(!window.AEGIS?.Core?.Auth?.ready)throw new Error('AEGIS AUTH core did not initialize.');await Promise.race([window.AEGIS.Core.Auth.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('AEGIS core authentication timed out.')),18000))]);
+  const appScripts=['app.js','v2.4.1.js','aq1-hotfix.js','aq2-calendar.js','aq2-stabilization.js','model-routing-telemetry.js','compatibility-v2.6.3.js','calendar-safety-bridge-v2.6.3.js'];for(const s of appScripts)await loadScript(s);
+  document.documentElement.dataset.aegisRuntime=RELEASE;window.dispatchEvent(new CustomEvent('aegis-stable-runtime-ready',{detail:{release:RELEASE,source:'auth-first-sequential'}}));
+}catch(e){document.body.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;background:#050b10;color:#eef8ff;font-family:system-ui;padding:24px"><div style="max-width:620px;border:1px solid #24495c;border-radius:18px;padding:28px;background:#08141d"><h2>AEGIS runtime failed to start</h2><p style="color:#ff9b9b">'+String(e.message||e).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</p><p>The authenticated session was preserved. Reload this page to retry.</p></div></div>';console.error('AEGIS stable runtime failure',e)}}
+async function handleCredential(resp){if(!resp?.credential)return showRecovery('Google did not return a usable credential.');try{await validateToken(resp.credential);await mountDashboard()}catch(e){saveToken('');showRecovery(e.message||String(e))}}
 async function startSignIn(){setPhase('SIGN_IN_LOADING','Loading Google Sign-In…');try{await loadGIS();const host=$('googleButton');host.innerHTML='';google.accounts.id.initialize({client_id:CLIENT_ID,callback:handleCredential,auto_select:false,cancel_on_tap_outside:false});google.accounts.id.renderButton(host,{theme:'filled_black',size:'large',shape:'pill',text:'signin_with',width:300});setPhase('SIGN_IN_REQUIRED','Authentication required.')}catch(e){showRecovery(e.message||String(e))}}
-async function boot(){const existing=token();if(existing){try{await validateToken(existing,'SESSION_CHECK');return enterAEGIS()}catch(e){saveToken('')}}startSignIn()}
+async function boot(){const existing=token();if(existing){try{await validateToken(existing,'SESSION_CHECK');return mountDashboard()}catch(e){saveToken('')}}startSignIn()}
 boot();
 })();
 </script>
