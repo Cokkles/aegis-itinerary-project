@@ -1,6 +1,6 @@
 window.AEGIS=window.AEGIS||{};
 AEGIS.Core=(()=>{
-  const BUILD='2.6.3f';
+  const BUILD='2.6.3j';
   const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
   const TOKEN_KEY='aegis_auth_token';
   const cacheKey=k=>'aegis_cache_'+k;
@@ -23,9 +23,10 @@ AEGIS.Core=(()=>{
     const ctrl=new AbortController();
     const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
     try{
-      const r=await fetch(url,{...opts,signal:ctrl.signal});
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      return await r.json();
+      const r=await fetch(url,{cache:'no-store',...opts,signal:ctrl.signal});
+      const text=await r.text();
+      if(!r.ok)throw new Error('HTTP '+r.status+(text?' — '+text.slice(0,180):''));
+      try{return JSON.parse(text)}catch{throw new Error('Invalid JSON response from AEGIS backend.')}
     }catch(err){
       if(err?.name==='AbortError')throw new Error('Request timed out after '+timeoutMs+' ms.');
       throw err;
@@ -48,7 +49,7 @@ AEGIS.Core=(()=>{
       #aegisAuthBadge{position:fixed;right:18px;bottom:18px;z-index:5000;display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid #285064;border-radius:999px;background:rgba(7,18,26,.93);box-shadow:0 8px 28px rgba(0,0,0,.32);color:#dcecf5;font:12px/1.2 Inter,system-ui,sans-serif}
       #aegisAuthBadge[hidden]{display:none!important}#aegisAuthBadge img{width:26px;height:26px;border-radius:50%;object-fit:cover}#aegisAuthBadge button{border:0;border-radius:999px;background:#173647;color:#dcecf5;padding:6px 9px;cursor:pointer}
     `;document.head.appendChild(style);
-    const gate=document.createElement('div');gate.id='aegisAuthGate';gate.innerHTML=`<div class="aegis-auth-card"><img class="aegis-auth-mark" src="aegis-mark-v3.svg?v=2.6.3f" alt="AEGIS"><h1>AEGIS SECURE ACCESS</h1><p>Sign in with an authorized Google account to unlock GEMINI-POS workspace data and controls.</p><div id="aegisGoogleButton"></div><div class="aegis-auth-status" id="aegisAuthStatus">Starting secure session…</div><div class="aegis-auth-phase" id="aegisAuthPhase">BOOT</div></div>`;document.body.appendChild(gate);
+    const gate=document.createElement('div');gate.id='aegisAuthGate';gate.innerHTML=`<div class="aegis-auth-card"><img class="aegis-auth-mark" src="aegis-mark-v3.svg?v=2.6.3j" alt="AEGIS"><h1>AEGIS SECURE ACCESS</h1><p>Sign in with an authorized Google account to unlock GEMINI-POS workspace data and controls.</p><div id="aegisGoogleButton"></div><div class="aegis-auth-status" id="aegisAuthStatus">Starting secure session…</div><div class="aegis-auth-phase" id="aegisAuthPhase">BOOT</div></div>`;document.body.appendChild(gate);
     const badge=document.createElement('div');badge.id='aegisAuthBadge';badge.hidden=true;document.body.appendChild(badge);
   }
 
@@ -59,16 +60,20 @@ AEGIS.Core=(()=>{
   function unlockUi(){document.body.classList.remove('aegis-auth-locked');const g=document.getElementById('aegisAuthGate');if(g)g.hidden=true;renderBadge()}
   function renderBadge(){const b=document.getElementById('aegisAuthBadge');if(!b||!auth.authenticated||!auth.user){if(b)b.hidden=true;return}const pic=auth.user.picture?`<img src="${String(auth.user.picture).replace(/"/g,'&quot;')}" alt="">`:'';b.innerHTML=`${pic}<span>${String(auth.user.email||'Authorized')}</span><button id="aegisLogoutBtn" type="button">Sign out</button>`;b.hidden=false;document.getElementById('aegisLogoutBtn')?.addEventListener('click',logout)}
 
-  function installRetry(error){const host=document.getElementById('aegisGoogleButton');if(!host)return;let btn=document.getElementById('aegisAuthRetry');if(!btn){btn=document.createElement('button');btn.id='aegisAuthRetry';btn.type='button';btn.textContent='Retry authentication';btn.addEventListener('click',()=>{btn.remove();bootstrapAuth(true)});host.appendChild(btn)}setAuthStatus(error?.message||String(error||'Authentication failed.'),true)}
+  function installRetry(error){const host=document.getElementById('aegisGoogleButton');if(!host)return;let btn=document.getElementById('aegisAuthRetry');if(!btn){btn=document.createElement('button');btn.id='aegisAuthRetry';btn.type='button';btn.textContent='Retry authentication';btn.addEventListener('click',()=>{btn.remove();document.getElementById('aegisAuthFallback')?.remove();bootstrapAuth(true)});host.appendChild(btn)}installStandaloneFallback();setAuthStatus(error?.message||String(error||'Authentication failed.'),true)}
 
   function loadGoogleIdentity(){return new Promise((resolve,reject)=>{
     if(window.google?.accounts?.id)return resolve();
-    const existing=document.getElementById('googleIdentityServices');
-    if(existing){
-      const started=Date.now();const poll=setInterval(()=>{if(window.google?.accounts?.id){clearInterval(poll);resolve()}else if(Date.now()-started>8000){clearInterval(poll);reject(new Error('Google Identity Services did not become ready.'))}},100);return;
-    }
-    const s=document.createElement('script');s.id='googleIdentityServices';s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;s.onload=()=>resolve();s.onerror=()=>reject(new Error('Google Identity Services failed to load.'));document.head.appendChild(s)
+    let settled=false,poll=null,timer=null;
+    const finish=(err)=>{if(settled)return;settled=true;if(poll)clearInterval(poll);if(timer)clearTimeout(timer);err?reject(err):resolve();};
+    let s=document.getElementById('googleIdentityServices');
+    if(!s){s=document.createElement('script');s.id='googleIdentityServices';s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;s.onload=()=>window.google?.accounts?.id?finish():null;s.onerror=()=>finish(new Error('Google Sign-In could not load. Browser privacy protection or network filtering may be blocking accounts.google.com.'));document.head.appendChild(s);}
+    poll=setInterval(()=>{if(window.google?.accounts?.id)finish();},100);
+    timer=setTimeout(()=>finish(new Error('Google Sign-In timed out after 10 seconds. Retry, or use the standalone sign-in fallback.')),10000);
   })}
+
+  function installStandaloneFallback(){const host=document.getElementById('aegisGoogleButton');if(!host||document.getElementById('aegisAuthFallback'))return;const a=document.createElement('a');a.id='aegisAuthFallback';a.href='auth-diagnostic.html?return=1';a.textContent='Open standalone sign-in';a.style.cssText='display:block;margin:12px auto 0;color:#8fdcff;font:700 13px Inter,system-ui,sans-serif;text-decoration:none';host.appendChild(a);}
+
 
   async function authPost(action,idToken){return rawFetchJson(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,auth_token:idToken})},15000)}
   function applySession(result,idToken){auth.authenticated=!!result?.authenticated;auth.user=result?.user||null;auth.expiresAt=result?.session?.expires_at||null;if(!auth.authenticated)return false;rememberToken(idToken);setPhase('AUTHENTICATED',auth.user?.email||'authorized');setAuthStatus('Authenticated. Loading AEGIS…');unlockUi();settleReady(true);return true}
@@ -81,7 +86,7 @@ AEGIS.Core=(()=>{
 
   async function renderGoogleButton(){
     setPhase('SIGN_IN_LOADING');setAuthStatus('Loading Google Sign-In…');
-    await loadGoogleIdentity();if(!auth.clientId)throw new Error('Google OAuth client ID is not configured.');
+    try{await loadGoogleIdentity()}catch(err){setPhase('SIGN_IN_FAILED');throw err}if(!auth.clientId)throw new Error('Google OAuth client ID is not configured.');
     const host=document.getElementById('aegisGoogleButton');if(!host)throw new Error('Authentication UI host is unavailable.');host.innerHTML='';
     window.google.accounts.id.initialize({client_id:auth.clientId,callback:handleGoogleCredential,auto_select:false,cancel_on_tap_outside:false});
     window.google.accounts.id.renderButton(host,{theme:'filled_black',size:'large',shape:'pill',text:'signin_with',width:300});
@@ -92,7 +97,7 @@ AEGIS.Core=(()=>{
     injectAuthUi();showGate();
     try{
       setPhase('CONFIG_LOADING');setAuthStatus('Loading authentication configuration…');
-      const cfg=await rawFetchJson(BACKEND+'?action=auth_config&ts='+Date.now(),{cache:'no-store'},10000);
+      const cfg={status:'success',provider:'google',configured:true,client_id:'441009275873-qnf9c9n1o3l9tl9c76t2821hm8tectfl.apps.googleusercontent.com',allowlist_configured:true,enforcement_required:true,auth_version:'AUTH-1',backend_version:'2.6.3',source:'release-pinned'};
       auth.configured=!!cfg.configured;auth.enforcementRequired=cfg.enforcement_required!==false;auth.clientId=cfg.client_id||null;
       if(!auth.configured)throw new Error('AEGIS authentication is not configured on the backend.');
       setPhase('CONFIG_READY','backend '+(cfg.backend_version||'?'));
