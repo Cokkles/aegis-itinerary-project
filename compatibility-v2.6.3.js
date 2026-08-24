@@ -7,6 +7,7 @@
   const REQUIRED=['auth.google','ai.query','calendar.read','calendar.write','calendar.aq2','horizon.generate'];
   const ROUTE_KEY='aegis_model_route_last';
   let lastMatrix=null;
+  try{AEGIS.Core.BUILD=FRONTEND_VERSION;}catch{}
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const bool=v=>v===true;
@@ -24,6 +25,8 @@
         renderNotifications?.();
       }
     }catch{}
+    const pa=document.getElementById('persistentAlert');
+    if(pa&&/backend update required|backend version mismatch/i.test(pa.textContent||'')){pa.classList.add('hidden');pa.innerHTML='';}
   }
 
   function canonicalCapabilities(cap,auth){
@@ -44,35 +47,33 @@
     };
   }
 
-  function routeTelemetry(){
-    try{return JSON.parse(sessionStorage.getItem(ROUTE_KEY)||'null')}catch{return null}
-  }
+  function routeTelemetry(){try{return JSON.parse(sessionStorage.getItem(ROUTE_KEY)||'null')}catch{return null}}
 
   function ensurePanel(){
     const system=document.getElementById('system');
-    if(!system) return null;
+    if(!system)return null;
     let panel=document.getElementById('compatibilityPanel');
-    if(panel) return panel;
-    panel=document.createElement('section');
-    panel.className='panel mt';
-    panel.id='compatibilityPanel';
+    if(panel)return panel;
+    panel=document.createElement('section');panel.className='panel mt';panel.id='compatibilityPanel';
     const notificationPanel=[...system.querySelectorAll('.panel')].find(x=>/NOTIFICATION CENTER/i.test(x.textContent||''));
     system.insertBefore(panel,notificationPanel||system.children[1]||null);
     return panel;
   }
 
   function renderPanel(matrix){
-    const panel=ensurePanel(); if(!panel||!matrix)return;
+    const panel=ensurePanel();if(!panel||!matrix)return;
     const route=routeTelemetry();
     const missing=REQUIRED.filter(k=>!matrix.capabilities[k]);
     const badges=Object.entries(matrix.capabilities).map(([k,v])=>`<span class="compat-cap ${v?'ok':'bad'}">${v?'✓':'✕'} ${esc(k)}</span>`).join('');
-    const routeText=route
-      ? `${esc(route.domain||'calendar')} • ${esc(route.operation||'—')} • ${esc(route.parser_source||'UNKNOWN')}${route.model_used?` • ${esc(route.model_used)}`:' • no model call'} • ${esc(new Date(route.at).toLocaleString())}`
-      : 'No Calendar routing telemetry recorded in this browser session yet.';
-    panel.innerHTML=`<div class="panel-head"><div><h2>COMPATIBILITY & MODEL ROUTING</h2><p class="muted">Capability-based compatibility. Versions are diagnostic metadata only.</p></div><span class="source-badge">${missing.length?'DEGRADED':'COMPATIBLE'}</span></div>
-      <div class="compat-summary"><div><small>FRONTEND</small><strong>${esc(FRONTEND_VERSION)}</strong></div><div><small>BACKEND</small><strong>${esc(matrix.backend_version||'unknown')}</strong></div><div><small>AUTH</small><strong>${esc(matrix.auth_version||'unknown')}</strong></div><div><small>REQUIRED CAPS</small><strong>${missing.length?esc(missing.length+' missing'):'All present'}</strong></div></div>
-      <div class="compat-caps">${badges}</div>
-      <div class="compat-routing"><h3>Model Routing</h3><div><b>Calendar policy:</b> deterministic-first; ambiguous fallback uses <code>gemini-3.5-flash-lite</code>.</div><div><b>Last Calendar route:</b> ${routeText}</div><div class="muted">Heavy reasoning remains on the global Gemini model; Calendar routine operations should not consume it.</div></div>`;
+    const routeText=route?`${esc(route.domain||'calendar')} • ${esc(route.operation||'—')} • ${esc(route.parser_source||'UNKNOWN')}${route.model_used?` • ${esc(route.model_used)}`:' • no model call'}${route.confirmed?' • confirmed':''} • ${esc(new Date(route.at).toLocaleString())}`:'No Calendar routing telemetry recorded in this browser session yet.';
+    panel.innerHTML=`<div class="panel-head"><div><h2>COMPATIBILITY & MODEL ROUTING</h2><p class="muted">Capability-based compatibility. Versions are diagnostic metadata only.</p></div><span class="source-badge">${missing.length?'DEGRADED':'COMPATIBLE'}</span></div><div class="compat-summary"><div><small>FRONTEND</small><strong>${esc(FRONTEND_VERSION)}</strong></div><div><small>BACKEND</small><strong>${esc(matrix.backend_version||'unknown')}</strong></div><div><small>AUTH</small><strong>${esc(matrix.auth_version||'unknown')}</strong></div><div><small>REQUIRED CAPS</small><strong>${missing.length?esc(missing.length+' missing'):'All present'}</strong></div></div><div class="compat-caps">${badges}</div><div class="compat-routing"><h3>Model Routing</h3><div><b>Calendar policy:</b> deterministic-first; ambiguous fallback uses <code>gemini-3.5-flash-lite</code>.</div><div><b>Last Calendar route:</b> ${routeText}</div><div class="muted">Heavy reasoning remains on the global Gemini model; routine Calendar operations should not consume it.</div></div>`;
+  }
+
+  function normalizeDiagnostics(){
+    const d=document.getElementById('diag');if(!d)return;
+    const html=d.innerHTML;
+    const next=html.replace(/Frontend build:\s*(?:<[^>]+>)*\*\*?2\.6\.2\*\*?(?:<\/[^>]+>)*/i,`Frontend build: <strong>${FRONTEND_VERSION}</strong>`).replace(/Frontend build:\s*<strong>2\.6\.2<\/strong>/i,`Frontend build: <strong>${FRONTEND_VERSION}</strong>`).replace(/Frontend build:\s*2\.6\.2/i,`Frontend build: ${FRONTEND_VERSION}`);
+    if(next!==html)d.innerHTML=next;
   }
 
   async function capabilityCheck(){
@@ -83,22 +84,21 @@
         AEGIS.Core.fetchJson(window.WEBHOOK+'?action=auth_config&ts='+Date.now(),{cache:'no-store'},8000)
       ]);
       capabilities=cap;
-      const canonical=canonicalCapabilities(cap,auth);
-      const missing=REQUIRED.filter(k=>!canonical[k]);
+      const canonical=canonicalCapabilities(cap,auth),missing=REQUIRED.filter(k=>!canonical[k]);
       lastMatrix={backend_version:String(cap?.backend_version||auth?.backend_version||''),auth_version:String(auth?.auth_version||''),capabilities:canonical,missing};
       AEGIS.Core.setState('backend',missing.length?'partial':'ready',`v${lastMatrix.backend_version||'?'} • ${missing.length?missing.length+' required capabilities missing':'capabilities compatible'}`);
-      if(missing.length){
-        localNotification?.('AEGIS required capability missing',`Missing: ${missing.join(', ')}. Only affected features should be considered degraded.`,'critical','backend-capability');
-      }
+      if(missing.length)localNotification?.('AEGIS required capability missing',`Missing: ${missing.join(', ')}. Only affected features should be considered degraded.`,'critical','backend-capability');
       renderPanel(lastMatrix);
     }catch(err){
       AEGIS.Core.setState('backend','failed',err.message);
       localNotification?.('AEGIS backend capability check failed','Could not verify required backend capabilities.','critical','backend-capability',err.message);
     }
     try{renderHealth?.();}catch{}
+    normalizeDiagnostics();clearLegacyVersionAlert();
   }
 
-  // Override legacy version-equality compatibility checks.
+  // Export for explicit refreshes; the legacy lexical function may still run during boot,
+  // so repeated cleanup below neutralizes its obsolete version-equality alert.
   window.checkCapabilities=capabilityCheck;
 
   function installStyles(){
@@ -108,8 +108,9 @@
     document.head.appendChild(style);
   }
 
-  installStyles();
-  clearLegacyVersionAlert();
-  setTimeout(capabilityCheck,0);
+  installStyles();clearLegacyVersionAlert();
+  [0,500,1500,3500].forEach(ms=>setTimeout(()=>{clearLegacyVersionAlert();normalizeDiagnostics();if(ms===0||ms===1500)capabilityCheck();},ms));
+  const observer=new MutationObserver(()=>{clearLegacyVersionAlert();normalizeDiagnostics();});
+  observer.observe(document.body,{childList:true,subtree:true,characterData:true});
   window.addEventListener('aegis-calendar-routing',()=>{if(lastMatrix)renderPanel(lastMatrix)});
 })();
