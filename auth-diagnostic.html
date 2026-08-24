@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AEGIS AUTH-1 Diagnostic</title>
+<style>
+body{margin:0;background:#071118;color:#e7f3f8;font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:920px;margin:0 auto;padding:28px}.card{background:#0b1b25;border:1px solid #24495c;border-radius:16px;padding:20px;margin:0 0 16px}.row{display:grid;grid-template-columns:220px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid #173545}.row:last-child{border-bottom:0}.k{color:#91aebb}.v{word-break:break-word}.ok{color:#78e6aa}.bad{color:#ff9b9b}.warn{color:#ffd37a}button{border:1px solid #31566b;border-radius:10px;background:#153446;color:#e8f5fb;padding:10px 14px;cursor:pointer;font-weight:700;margin-right:8px}pre{white-space:pre-wrap;word-break:break-word;background:#061017;border:1px solid #173545;border-radius:10px;padding:12px;max-height:360px;overflow:auto}h1{margin-top:0}.small{color:#91aebb;font-size:13px}#googleButton{margin-top:12px;min-height:44px}</style>
+</head>
+<body>
+<div class="wrap">
+<h1>AEGIS AUTH-1 Diagnostic</h1>
+<p class="small">Standalone diagnostic. This page does not load the AEGIS dashboard runtime.</p>
+<div class="card" id="summary"></div>
+<div class="card"><button id="run">Run diagnostics</button><button id="clear">Unregister SW + clear AEGIS caches</button><button id="home">Open AEGIS</button><div id="googleButton"></div></div>
+<div class="card"><h3>Detailed log</h3><pre id="log">Ready.</pre></div>
+</div>
+<script>
+const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
+const TOKEN_KEY='aegis_auth_token';
+const rows=[]; const logEl=document.getElementById('log');
+function add(k,v,state=''){rows.push({k,v,state});render();log(k+': '+(typeof v==='string'?v:JSON.stringify(v,null,2)))}
+function render(){document.getElementById('summary').innerHTML=rows.map(r=>`<div class="row"><div class="k">${esc(r.k)}</div><div class="v ${r.state}">${esc(typeof r.v==='string'?r.v:JSON.stringify(r.v))}</div></div>`).join('')}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function log(s){logEl.textContent+=(logEl.textContent==='Ready.'?'\n':'')+new Date().toISOString()+' '+s+'\n';logEl.scrollTop=logEl.scrollHeight}
+async function fetchJson(url,opts={},timeout=12000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{...opts,cache:'no-store',signal:c.signal});const text=await r.text();let j;try{j=JSON.parse(text)}catch{j={raw:text}};return{http:r.status,ok:r.ok,json:j}}finally{clearTimeout(t)}}
+function decodeJwt(token){try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(atob(p).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')))}catch{return null}}
+async function loadGIS(){if(window.google?.accounts?.id)return true;return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;s.onload=()=>resolve(true);s.onerror=()=>reject(new Error('GIS script load failed'));document.head.appendChild(s);setTimeout(()=>{if(window.google?.accounts?.id)resolve(true);else reject(new Error('GIS timeout'))},9000)})}
+async function run(){rows.length=0;logEl.textContent='';add('Diagnostic release','2.6.3e','ok');add('Location',location.href);add('navigator.onLine',String(navigator.onLine),navigator.onLine?'ok':'bad');
+  try{add('SW controller',navigator.serviceWorker?.controller?.scriptURL||'none',navigator.serviceWorker?.controller?'warn':'ok');const regs=await navigator.serviceWorker.getRegistrations();add('SW registrations',regs.map(r=>r.active?.scriptURL||r.scope));}catch(e){add('SW inspection',e.message,'bad')}
+  try{const keys=await caches.keys();add('CacheStorage keys',keys,keys.some(k=>/aegis/i.test(k))?'warn':'ok')}catch(e){add('Cache inspection',e.message,'bad')}
+  let cfg=null;
+  try{const r=await fetchJson(BACKEND+'?action=auth_config&ts='+Date.now(),{},12000);cfg=r.json;add('auth_config HTTP',String(r.http),r.ok?'ok':'bad');add('auth_config',cfg,r.ok&&cfg?.configured?'ok':'bad')}catch(e){add('auth_config fetch',e.name+': '+e.message,'bad')}
+  const tok=sessionStorage.getItem(TOKEN_KEY)||'';add('Session token present',tok?'yes':'no',tok?'ok':'warn');if(tok){const claims=decodeJwt(tok);add('Token claims',claims?{email:claims.email,exp:claims.exp,aud:claims.aud}: 'unable to decode',claims?'ok':'warn');try{const r=await fetchJson(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'auth_session',auth_token:tok})},15000);add('auth_session HTTP',String(r.http),r.ok?'ok':'bad');add('auth_session',r.json,r.json?.authenticated?'ok':'bad')}catch(e){add('auth_session fetch',e.name+': '+e.message,'bad')}}
+  try{await loadGIS();add('Google Identity Services','loaded','ok');if(cfg?.client_id){window.google.accounts.id.initialize({client_id:cfg.client_id,callback:async(resp)=>{add('GIS credential callback',resp?.credential?'credential received':'no credential',resp?.credential?'ok':'bad');if(!resp?.credential)return;try{const r=await fetchJson(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'auth_login',auth_token:resp.credential})},15000);add('auth_login HTTP',String(r.http),r.ok?'ok':'bad');add('auth_login',r.json,r.json?.authenticated?'ok':'bad');if(r.json?.authenticated){sessionStorage.setItem(TOKEN_KEY,resp.credential);add('Session token stored','yes','ok')}}catch(e){add('auth_login fetch',e.name+': '+e.message,'bad')}}});const host=document.getElementById('googleButton');host.innerHTML='';window.google.accounts.id.renderButton(host,{theme:'filled_black',size:'large',shape:'pill',text:'signin_with',width:300});add('Google button','rendered','ok')}}catch(e){add('Google Identity Services',e.name+': '+e.message,'bad')}
+}
+document.getElementById('run').onclick=run;document.getElementById('clear').onclick=async()=>{try{const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()));const keys=await caches.keys();await Promise.all(keys.filter(k=>/aegis/i.test(k)).map(k=>caches.delete(k)));alert('AEGIS service workers and caches cleared.');}catch(e){alert(e.message)}};document.getElementById('home').onclick=()=>location.href='./?diagreturn='+Date.now();run();
+</script>
+</body>
+</html>
