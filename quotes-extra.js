@@ -22,3 +22,24 @@
     return nativeFetch(input,init);
   };
 })();
+
+// AEGIS 2.6.3q — finite canonical dashboard-data bridge loader.
+// The legacy app still initializes from getHorizonData. Once app.js exists,
+// load the bounded bridge that re-sources briefing text from the canonical
+// getLatestHorizonBriefing endpoint and clears the obsolete 2.4.0 version alarm.
+(()=>{
+  if(window.__AEGIS_DATA_BRIDGE_LOADER_263Q__)return;
+  window.__AEGIS_DATA_BRIDGE_LOADER_263Q__=true;
+  function install(){
+    if(window.__AEGIS_DATA_BRIDGE_263Q__)return true;
+    if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;
+    if(document.getElementById('aegisDataBridge263q'))return true;
+    const s=document.createElement('script');
+    s.id='aegisDataBridge263q';
+    s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.3q';
+    s.async=false;
+    document.body.appendChild(s);
+    return true;
+  }
+  [250,900,2200,5000].forEach(ms=>setTimeout(install,ms));
+})();
