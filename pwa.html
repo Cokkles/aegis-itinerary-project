@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AEGIS Secure Access</title>
+<link rel="manifest" href="manifest.json?v=2.6.4">
+<link rel="icon" type="image/png" href="aegis-mark.png?v=2.6.4">
+<meta name="theme-color" content="#10283b">
+<style id="pwaLauncherStyle">
+html,body{margin:0;min-height:100%;background:#050b10;color:#eef8ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}.card{width:min(460px,100%);box-sizing:border-box;border:1px solid #24495c;border-radius:22px;background:#08141d;box-shadow:0 22px 70px rgba(0,0,0,.48);padding:34px;text-align:center}.mark{width:72px;height:72px;object-fit:contain;margin-bottom:14px}.card h1{font-size:28px;letter-spacing:.04em;margin:0 0 8px}.card p{color:#a8bdc9;line-height:1.5;margin:0 0 20px}.status{min-height:22px;color:#8fdcff;font-size:13px;margin:14px 0 6px}.phase{color:#668898;font-size:11px;letter-spacing:.08em;margin-bottom:14px}.error{color:#ff9b9b}.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}button,a.btn{border:1px solid #31566b;border-radius:10px;background:#153446;color:#e8f5fb;padding:10px 14px;cursor:pointer;font-weight:700;text-decoration:none}#googleButton{display:flex;justify-content:center;min-height:44px;margin-top:8px}.small{margin-top:18px!important;font-size:12px;color:#668898!important}
+</style>
+</head>
+<body>
+<div class="card">
+<img class="mark" src="aegis-mark-v3.svg?v=2.6.4" alt="AEGIS">
+<h1>AEGIS SECURE ACCESS</h1>
+<p>Authenticate first. Dashboard services start only after the session is verified.</p>
+<div id="googleButton"></div>
+<div class="status" id="status">Starting secure session…</div>
+<div class="phase" id="phase">BOOT</div>
+<div class="actions" id="actions"></div>
+<p class="small">AEGIS PWA 2.6.4 • AUTH-1</p>
+</div>
+<script>
+(()=>{
+'use strict';
+const RELEASE='2.6.4';
+const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
+const CLIENT_ID='441009275873-qnf9c9n1o3l9tl9c76t2821hm8tectfl.apps.googleusercontent.com';
+const TOKEN_KEY='aegis_auth_token';
+const nativeFetch=window.fetch.bind(window);
+const $=id=>document.getElementById(id);
+let gisScript=null,runtimeStarted=false;
+
+function setPhase(p,msg,error=false){const ph=$('phase'),st=$('status');if(ph)ph.textContent=p;if(st){st.textContent=msg||p;st.classList.toggle('error',!!error)}document.documentElement.dataset.phase=p}
+function token(){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch{return''}}
+function saveToken(v){try{v?sessionStorage.setItem(TOKEN_KEY,v):sessionStorage.removeItem(TOKEN_KEY)}catch{}}
+function escapeHtml(s){return String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+
+async function fetchWithTimeout(url,opts={},timeout=15000){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{return await nativeFetch(url,{cache:'no-store',...opts,signal:c.signal})}catch(e){if(e?.name==='AbortError')throw new Error('Request timed out after '+Math.round(timeout/1000)+' seconds.');throw e}finally{clearTimeout(t)}}
+async function postJson(payload,timeout=15000){const r=await fetchWithTimeout(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)},timeout);const text=await r.text();if(!r.ok)throw new Error('HTTP '+r.status+(text?' — '+text.slice(0,160):''));try{return JSON.parse(text)}catch{throw new Error('Invalid backend JSON response.')}}
+
+function stopGIS(){if(gisScript){try{gisScript.onload=null;gisScript.onerror=null;gisScript.remove()}catch{}gisScript=null}}
+function showRecovery(message){setPhase('SIGN_IN_FAILED',message,true);stopGIS();const a=$('actions');if(!a)return;a.innerHTML='';const retry=document.createElement('button');retry.textContent='Retry sign-in';retry.onclick=()=>{a.innerHTML='';startSignIn()};a.appendChild(retry);const diag=document.createElement('a');diag.className='btn';diag.href='auth-diagnostic.html';diag.textContent='Open diagnostics';a.appendChild(diag)}
+function loadGIS(){return new Promise((resolve,reject)=>{if(window.google?.accounts?.id)return resolve();let done=false,poll,timer;const finish=err=>{if(done)return;done=true;clearInterval(poll);clearTimeout(timer);if(err)stopGIS();err?reject(err):resolve()};gisScript=document.createElement('script');gisScript.src='https://accounts.google.com/gsi/client';gisScript.async=true;gisScript.defer=true;gisScript.onload=()=>window.google?.accounts?.id&&finish();gisScript.onerror=()=>finish(new Error('Google Sign-In was blocked or failed to load.'));document.head.appendChild(gisScript);poll=setInterval(()=>window.google?.accounts?.id&&finish(),100);timer=setTimeout(()=>finish(new Error('Google Sign-In timed out after 10 seconds.')),10000)})}
+async function validateToken(idToken,phase='LOGIN_VERIFY'){setPhase(phase,phase==='SESSION_CHECK'?'Validating existing credential…':'Verifying account with AEGIS…');const j=await postJson({action:'auth_login',auth_token:idToken},15000);if(!j?.authenticated)throw new Error(j?.error||'Account was not authorized.');saveToken(idToken);return j}
+
+function loadStyle(href){return new Promise((resolve,reject)=>{if([...document.styleSheets].some(s=>String(s.href||'').includes(href.split('?')[0])))return resolve();const l=document.createElement('link');let settled=false;const t=setTimeout(()=>{if(!settled){settled=true;l.remove();reject(new Error('Stylesheet timed out: '+href))}},12000);l.rel='stylesheet';l.href=href;l.onload=()=>{if(!settled){settled=true;clearTimeout(t);resolve()}};l.onerror=()=>{if(!settled){settled=true;clearTimeout(t);reject(new Error('Failed to load '+href))}};document.head.appendChild(l)})}
+function scriptAlreadyLoaded(name){return [...document.scripts].some(s=>{try{return new URL(s.src,location.href).pathname.endsWith('/'+name)}catch{return false}})}
+function loadScript(name){return new Promise((resolve,reject)=>{if(scriptAlreadyLoaded(name))return resolve();const s=document.createElement('script');let settled=false;const t=setTimeout(()=>{if(!settled){settled=true;s.remove();reject(new Error('Script timed out: '+name))}},15000);s.src=name+(name.includes('?')?'&':'?')+'v='+RELEASE;s.async=false;s.dataset.aegisPwaRuntime=RELEASE;s.onload=()=>{if(!settled){settled=true;clearTimeout(t);resolve()}};s.onerror=()=>{if(!settled){settled=true;clearTimeout(t);reject(new Error('Failed to load '+name))}};document.body.appendChild(s)})}
+
+async function mountDashboard(){if(runtimeStarted)return;runtimeStarted=true;setPhase('RUNTIME_SHELL','Loading AEGIS shell…');stopGIS();try{
+  const r=await fetchWithTimeout('./index.html?pwaShell='+RELEASE+'&ts='+Date.now(),{},10000);if(!r.ok)throw new Error('Dashboard shell HTTP '+r.status);const html=await r.text();const parsed=new DOMParser().parseFromString(html,'text/html');parsed.querySelectorAll('script').forEach(x=>x.remove());
+  const styles=[...parsed.head.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute('href')).filter(Boolean);await Promise.all(styles.map(loadStyle));document.title='AEGIS Central Control';document.body.innerHTML=parsed.body.innerHTML;document.getElementById('pwaLauncherStyle')?.remove();
+
+  setPhase('RUNTIME_CORE','Loading authenticated core…');
+  const coreScripts=['quotes.js','quotes-1.js','quotes-2.js','quotes-3.js','quotes-4.js','quotes-5.js','quotes-6.js','quotes-7.js','pwa-runtime-2.6.4.js','quotes-extra.js','aegis-core.js'];
+  for(const s of coreScripts)await loadScript(s);
+  if(!window.AEGIS?.Core?.Auth?.ready)throw new Error('AEGIS AUTH core did not initialize.');
+  await Promise.race([AEGIS.Core.Auth.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('AEGIS core authentication timed out.')),18000))]);
+
+  setPhase('RUNTIME_APP','Loading dashboard services…');
+  // AQ-2 supersedes the older AQ-1 hotfix on this PWA path. One Ask-AEGIS handler set only.
+  const appScripts=['app.js','v2.4.1.js','aq2-calendar.js','aq2-stabilization.js','model-routing-telemetry.js','compatibility-v2.6.3.js','calendar-safety-bridge-v2.6.3.js'];
+  for(const s of appScripts)await loadScript(s);
+  if(window.AEGIS?.Core)AEGIS.Core.BACKEND=BACKEND;
+  document.documentElement.dataset.aegisRuntime=RELEASE;
+  window.dispatchEvent(new CustomEvent('aegis-stable-runtime-ready',{detail:{release:RELEASE,source:'pwa-auth-first-single-transport'}}));
+}catch(e){document.body.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;background:#050b10;color:#eef8ff;font-family:system-ui;padding:24px"><div style="max-width:620px;border:1px solid #24495c;border-radius:18px;padding:28px;background:#08141d"><h2>AEGIS runtime failed to start</h2><p style="color:#ff9b9b">'+escapeHtml(e.message||e)+'</p><p>The authenticated credential was preserved. Reload to retry.</p></div></div>';console.error('AEGIS PWA runtime failure',e)}}
+
+async function handleCredential(resp){if(!resp?.credential)return showRecovery('Google did not return a usable credential.');try{await validateToken(resp.credential);await mountDashboard()}catch(e){saveToken('');showRecovery(e.message||String(e))}}
+async function startSignIn(){setPhase('SIGN_IN_LOADING','Loading Google Sign-In…');try{await loadGIS();const host=$('googleButton');host.innerHTML='';google.accounts.id.initialize({client_id:CLIENT_ID,callback:handleCredential,auto_select:false,cancel_on_tap_outside:false});google.accounts.id.renderButton(host,{theme:'filled_black',size:'large',shape:'pill',text:'signin_with',width:300});setPhase('SIGN_IN_REQUIRED','Authentication required.')}catch(e){showRecovery(e.message||String(e))}}
+async function boot(){const existing=token();if(existing){try{await validateToken(existing,'SESSION_CHECK');return mountDashboard()}catch{saveToken('')}}return startSignIn()}
+boot();
+})();
+</script>
+</body>
+</html>

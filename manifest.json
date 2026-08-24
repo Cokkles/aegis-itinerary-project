@@ -1,13 +1,14 @@
 {
+  "id": "./pwa.html",
   "name": "AEGIS Central Control",
   "short_name": "AEGIS",
   "description": "Authenticated GEMINI-POS control surface for HORIZON, Calendar, Tasks, SPARK capture, KINETIC, SENTINEL-FIN, and system intelligence.",
-  "start_url": "./index.html",
+  "start_url": "./pwa.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#071019",
   "theme_color": "#10283b",
-  "scope": "./",
   "categories": ["productivity", "utilities"],
   "icons": [
     {
@@ -33,26 +34,26 @@
     {
       "name": "New Note",
       "short_name": "Note",
-      "description": "Dispatch a quick note entry",
-      "url": "./index.html?prefix=/note"
+      "description": "Open AEGIS for a quick note entry",
+      "url": "./pwa.html?prefix=/note"
     },
     {
       "name": "New Task",
       "short_name": "Task",
-      "description": "Dispatch a new task entry",
-      "url": "./index.html?prefix=/task"
+      "description": "Open AEGIS for task entry",
+      "url": "./pwa.html?prefix=/task"
     },
     {
       "name": "Log Calories",
       "short_name": "Calories",
-      "description": "Dispatch food or macro log",
-      "url": "./index.html?prefix=/calories"
+      "description": "Open AEGIS for food or macro logging",
+      "url": "./pwa.html?prefix=/calories"
     },
     {
       "name": "Journal Entry",
       "short_name": "Journal",
-      "description": "Dispatch a personal journal entry",
-      "url": "./index.html?prefix=/journal"
+      "description": "Open AEGIS for a journal entry",
+      "url": "./pwa.html?prefix=/journal"
     }
   ]
 }
