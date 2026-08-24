@@ -11,28 +11,23 @@ html,body{margin:0;min-height:100%;background:#050b10;color:#eef8ff;font-family:
 </head>
 <body>
 <div class="card">
-<img class="mark" src="aegis-mark-v3.svg?v=2.6.3o" alt="AEGIS">
+<img class="mark" src="aegis-mark-v3.svg?v=2.6.3p" alt="AEGIS">
 <h1>AEGIS SECURE ACCESS</h1>
 <p>Authentication is completed before the dashboard runtime starts.</p>
 <div id="googleButton"></div>
 <div class="status" id="status">Starting secure session…</div>
 <div class="phase" id="phase">BOOT</div>
 <div class="actions" id="actions"></div>
-<p class="small">AEGIS stable runtime 2.6.3o • AUTH-1</p>
+<p class="small">AEGIS stable runtime 2.6.3p • AUTH-1</p>
 </div>
 <script>
 (()=>{
-const RELEASE='2.6.3o';
+const RELEASE='2.6.3p';
 const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
 const CLIENT_ID='441009275873-qnf9c9n1o3l9tl9c76t2821hm8tectfl.apps.googleusercontent.com';
 const TOKEN_KEY='aegis_auth_token';
 const $=id=>document.getElementById(id);
 let gisScript=null,runtimeStarted=false;
-
-// Stable runtime network governor. This intentionally limits all dashboard
-// resource/API activity to two in-flight requests so a startup fan-out cannot
-// saturate the browser/network event loop. Each underlying request also has a
-// hard 30 second governor ceiling independent of subsystem-level timeouts.
 const nativeFetch=window.fetch.bind(window);
 const fetchQueue=[];
 let activeFetches=0;
@@ -40,7 +35,6 @@ const MAX_FETCHES=2;
 function pumpFetchQueue(){while(activeFetches<MAX_FETCHES&&fetchQueue.length){const job=fetchQueue.shift();activeFetches++;job.run().finally(()=>{activeFetches--;pumpFetchQueue()})}}
 window.fetch=function governedFetch(input,init={}){return new Promise((resolve,reject)=>{const run=async()=>{const ctrl=new AbortController();let externalAbort=null;const timer=setTimeout(()=>ctrl.abort(),30000);try{if(init.signal){if(init.signal.aborted)ctrl.abort();else{externalAbort=()=>ctrl.abort();init.signal.addEventListener('abort',externalAbort,{once:true})}}const response=await nativeFetch(input,{...init,signal:ctrl.signal});resolve(response)}catch(err){reject(err)}finally{clearTimeout(timer);if(init.signal&&externalAbort)try{init.signal.removeEventListener('abort',externalAbort)}catch{}}};fetchQueue.push({run});pumpFetchQueue()})};
 window.__AEGIS_FETCH_GOVERNOR__={release:RELEASE,maxConcurrent:MAX_FETCHES,get active(){return activeFetches},get queued(){return fetchQueue.length}};
-
 function setPhase(p,msg,error=false){const ph=$('phase'),st=$('status');if(ph)ph.textContent=p;if(st){st.textContent=msg||p;st.classList.toggle('error',!!error)}document.documentElement.dataset.phase=p}
 function token(){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch{return''}}
 function saveToken(v){try{v?sessionStorage.setItem(TOKEN_KEY,v):sessionStorage.removeItem(TOKEN_KEY)}catch{}}
@@ -59,7 +53,7 @@ async function mountDashboard(){if(runtimeStarted)return;runtimeStarted=true;set
   const scripts=['quotes.js','quotes-1.js','quotes-2.js','quotes-3.js','quotes-4.js','quotes-5.js','quotes-6.js','quotes-7.js','quotes-extra.js','aegis-core.js'];for(const s of scripts)await loadScript(s);
   if(!window.AEGIS?.Core?.Auth?.ready)throw new Error('AEGIS AUTH core did not initialize.');await Promise.race([window.AEGIS.Core.Auth.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('AEGIS core authentication timed out.')),18000))]);
   const appScripts=['app.js','v2.4.1.js','aq1-hotfix.js','aq2-calendar.js','aq2-stabilization.js','model-routing-telemetry.js','compatibility-v2.6.3.js','calendar-safety-bridge-v2.6.3.js'];for(const s of appScripts)await loadScript(s);
-  document.documentElement.dataset.aegisRuntime=RELEASE;window.dispatchEvent(new CustomEvent('aegis-stable-runtime-ready',{detail:{release:RELEASE,source:'auth-first-governed'}}));
+  document.documentElement.dataset.aegisRuntime=RELEASE;window.dispatchEvent(new CustomEvent('aegis-stable-runtime-ready',{detail:{release:RELEASE,source:'auth-first-governed-no-mutation-loop'}}));
 }catch(e){document.body.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;background:#050b10;color:#eef8ff;font-family:system-ui;padding:24px"><div style="max-width:620px;border:1px solid #24495c;border-radius:18px;padding:28px;background:#08141d"><h2>AEGIS runtime failed to start</h2><p style="color:#ff9b9b">'+String(e.message||e).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</p><p>The authenticated session was preserved. Reload this page to retry.</p></div></div>';console.error('AEGIS stable runtime failure',e)}}
 async function handleCredential(resp){if(!resp?.credential)return showRecovery('Google did not return a usable credential.');try{await validateToken(resp.credential);await mountDashboard()}catch(e){saveToken('');showRecovery(e.message||String(e))}}
 async function startSignIn(){setPhase('SIGN_IN_LOADING','Loading Google Sign-In…');try{await loadGIS();const host=$('googleButton');host.innerHTML='';google.accounts.id.initialize({client_id:CLIENT_ID,callback:handleCredential,auto_select:false,cancel_on_tap_outside:false});google.accounts.id.renderButton(host,{theme:'filled_black',size:'large',shape:'pill',text:'signin_with',width:300});setPhase('SIGN_IN_REQUIRED','Authentication required.')}catch(e){showRecovery(e.message||String(e))}}
