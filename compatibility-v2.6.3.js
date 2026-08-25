@@ -1,15 +1,13 @@
-// AEGIS frontend compatibility layer 2.6.3p
-// Capability-driven diagnostics with bounded, finite initialization.
+// AEGIS frontend compatibility layer — capability-driven diagnostics.
 (function(){
   if(!window.AEGIS?.Core) return;
-  if(window.__AEGIS_COMPAT_263P__) return;
-  window.__AEGIS_COMPAT_263P__=true;
+  if(window.__AEGIS_COMPAT_264B__) return;
+  window.__AEGIS_COMPAT_264B__=true;
 
-  const FRONTEND_VERSION='2.6.3p';
+  const FRONTEND_VERSION=String(window.AEGIS_PWA?.release||document.documentElement.dataset.aegisRuntime||AEGIS.Core.BUILD||'unknown');
   const REQUIRED=['auth.google','ai.query','calendar.read','calendar.write','calendar.aq2','horizon.generate'];
   const ROUTE_KEY='aegis_model_route_last';
   let lastMatrix=null;
-  try{AEGIS.Core.BUILD=FRONTEND_VERSION;}catch{}
 
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const bool=v=>v===true;
@@ -100,8 +98,8 @@
 
   window.checkCapabilities=capabilityCheck;
 
-  if(!document.getElementById('compat263Styles')){
-    const style=document.createElement('style');style.id='compat263Styles';
+  if(!document.getElementById('compat264Styles')){
+    const style=document.createElement('style');style.id='compat264Styles';
     style.textContent='.compat-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin:12px 0}.compat-summary>div{padding:10px;border:1px solid rgba(93,169,194,.24);border-radius:8px;background:#091923}.compat-summary small{display:block;color:#7f9cab;font-size:.72rem}.compat-summary strong{display:block;margin-top:4px;color:#e7f1f5}.compat-caps{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.compat-cap{padding:5px 8px;border-radius:999px;border:1px solid rgba(127,159,198,.22);font-size:.76rem}.compat-cap.ok{color:#9dddc6}.compat-cap.bad{color:#ffaaa8}.compat-routing{margin-top:14px;padding-top:12px;border-top:1px solid rgba(93,169,194,.2)}@media(max-width:800px){.compat-summary{grid-template-columns:repeat(2,1fr)}}';
     document.head.appendChild(style);
   }
