@@ -40,12 +40,23 @@
     try{console.error('[AEGIS PWA rejection]',event.reason)}catch{}
   });
 
+  function loadPostRuntimeBridge(src,id){
+    if(document.getElementById(id))return;
+    const s=document.createElement('script');
+    s.id=id;s.src=src+'?v=2.6.4b';s.async=false;
+    s.onerror=()=>console.error('[AEGIS PWA] failed to load '+src);
+    document.body.appendChild(s);
+  }
+
   window.addEventListener('aegis-stable-runtime-ready',()=>{
     try{
       if(window.AEGIS?.Core){
         AEGIS.Core.BACKEND=BACKEND;
         AEGIS.Core.setState?.('pwa','ready','AEGIS PWA '+RELEASE+' • auth-first • canonical backend');
       }
+      // Manual Sync and post-generation refresh must re-read latest_horizon_briefing
+      // after the general dashboard bundle so canonical HORIZON always wins last.
+      loadPostRuntimeBridge('horizon-sync-bridge-v2.6.4b.js','aegisHorizonSync264b');
     }catch{}
   },{once:true});
 })();
