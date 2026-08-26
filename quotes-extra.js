@@ -19,40 +19,23 @@
   window.fetch=function(input,init={}){
     const url=typeof input==='string'?input:(input&&input.url)||'';
     if(!String(url).startsWith(BACKEND)||String(init.method||'GET').toUpperCase()!=='POST'||!init.body)return nativeFetch(input,init);
-    try{
-      const payload=JSON.parse(init.body);
-      if(payload&&payload.action==='auth_session'){
-        payload.action='auth_login';
-        return nativeFetch(input,{...init,body:JSON.stringify(payload)});
-      }
-    }catch{}
+    try{const payload=JSON.parse(init.body);if(payload&&payload.action==='auth_session'){payload.action='auth_login';return nativeFetch(input,{...init,body:JSON.stringify(payload)})}}catch{}
     return nativeFetch(input,init);
   };
 })();
 
-// Finite canonical dashboard-data bridge loader.
+// Canonical dashboard-data bridge loader. The runtime-ready event is authoritative;
+// finite timers remain only as a compatibility fallback for non-PWA entry points.
 (()=>{
-  if(window.__AEGIS_DATA_BRIDGE_LOADER_263Q__)return;
-  window.__AEGIS_DATA_BRIDGE_LOADER_263Q__=true;
-  function install(){
-    if(window.__AEGIS_DATA_BRIDGE_263Q__)return true;
-    if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;
-    if(document.getElementById('aegisDataBridge263q'))return true;
-    const s=document.createElement('script');
-    s.id='aegisDataBridge263q';s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.5';s.async=false;document.body.appendChild(s);return true;
-  }
-  [250,900,2200,5000].forEach(ms=>setTimeout(install,ms));
+  if(window.__AEGIS_DATA_BRIDGE_LOADER_263Q__)return;window.__AEGIS_DATA_BRIDGE_LOADER_263Q__=true;
+  function install(){if(window.__AEGIS_DATA_BRIDGE_263Q__)return true;if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;if(document.getElementById('aegisDataBridge263q'))return true;const s=document.createElement('script');s.id='aegisDataBridge263q';s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.5';s.async=false;document.body.appendChild(s);return true}
+  window.addEventListener('aegis-stable-runtime-ready',install,{once:true});[2500,6000,12000].forEach(ms=>setTimeout(install,ms));
 })();
 
-// AEGIS 2.6.5 UX/reliability loader. Wait for app.js to finish defining the dashboard.
+// AEGIS 2.6.5 UX/reliability loader. Prefer the explicit post-runtime event so
+// navigation/AQ/compatibility modules finish before the dashboard is personalized.
 (()=>{
   if(window.__AEGIS_UX_LOADER_265__)return;window.__AEGIS_UX_LOADER_265__=true;
-  function install(){
-    if(window.__AEGIS_DASHBOARD_UX_265__)return true;
-    if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;
-    if(!document.getElementById('aegisUxCss265')){const l=document.createElement('link');l.id='aegisUxCss265';l.rel='stylesheet';l.href='dashboard-ux-v2.6.5.css?v=2.6.5';document.head.appendChild(l)}
-    if(!document.getElementById('aegisUxJs265')){const s=document.createElement('script');s.id='aegisUxJs265';s.src='dashboard-ux-v2.6.5.js?v=2.6.5';s.async=false;document.body.appendChild(s)}
-    return true;
-  }
-  [350,1000,2400,5200].forEach(ms=>setTimeout(install,ms));
+  function install(){if(window.__AEGIS_DASHBOARD_UX_265__)return true;if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;if(!document.getElementById('aegisUxCss265')){const l=document.createElement('link');l.id='aegisUxCss265';l.rel='stylesheet';l.href='dashboard-ux-v2.6.5.css?v=2.6.5';document.head.appendChild(l)}if(!document.getElementById('aegisUxJs265')){const s=document.createElement('script');s.id='aegisUxJs265';s.src='dashboard-ux-v2.6.5.js?v=2.6.5';s.async=false;document.body.appendChild(s)}return true}
+  window.addEventListener('aegis-stable-runtime-ready',install,{once:true});[3000,7000,13000].forEach(ms=>setTimeout(install,ms));
 })();
