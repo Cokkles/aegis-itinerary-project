@@ -15,6 +15,8 @@
   function saveJson(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{}}
 
   function loadCuratedQuotes(){
+    const alreadyLoaded=window.AEGIS_QUOTE_LIBRARY?.release===RELEASE||[...document.scripts].some(s=>String(s.src||'').includes('quotes-curated-2.6.5.js'));
+    if(alreadyLoaded){try{window.rotateQuote?.()}catch{};try{AEGIS.Core.setState('quotes','ready',(window.Q?.length||0)+' curated quotes • 5 minute rotation')}catch{};return}
     if(document.getElementById('aegisCuratedQuotes265')) return;
     const s=document.createElement('script');
     s.id='aegisCuratedQuotes265';s.src='quotes-curated-2.6.5.js?v='+RELEASE;s.async=false;
