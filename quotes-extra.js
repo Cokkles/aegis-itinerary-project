@@ -39,11 +39,20 @@
     if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;
     if(document.getElementById('aegisDataBridge263q'))return true;
     const s=document.createElement('script');
-    s.id='aegisDataBridge263q';
-    s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.5';
-    s.async=false;
-    document.body.appendChild(s);
-    return true;
+    s.id='aegisDataBridge263q';s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.5';s.async=false;document.body.appendChild(s);return true;
   }
   [250,900,2200,5000].forEach(ms=>setTimeout(install,ms));
+})();
+
+// AEGIS 2.6.5 UX/reliability loader. Wait for app.js to finish defining the dashboard.
+(()=>{
+  if(window.__AEGIS_UX_LOADER_265__)return;window.__AEGIS_UX_LOADER_265__=true;
+  function install(){
+    if(window.__AEGIS_DASHBOARD_UX_265__)return true;
+    if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;
+    if(!document.getElementById('aegisUxCss265')){const l=document.createElement('link');l.id='aegisUxCss265';l.rel='stylesheet';l.href='dashboard-ux-v2.6.5.css?v=2.6.5';document.head.appendChild(l)}
+    if(!document.getElementById('aegisUxJs265')){const s=document.createElement('script');s.id='aegisUxJs265';s.src='dashboard-ux-v2.6.5.js?v=2.6.5';s.async=false;document.body.appendChild(s)}
+    return true;
+  }
+  [350,1000,2400,5200].forEach(ms=>setTimeout(install,ms));
 })();
