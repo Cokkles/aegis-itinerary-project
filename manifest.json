@@ -3,7 +3,7 @@
   "name": "AEGIS Central Control",
   "short_name": "AEGIS",
   "description": "Authenticated GEMINI-POS control surface for HORIZON, Calendar, Tasks, SPARK capture, KINETIC, SENTINEL-FIN, and system intelligence.",
-  "start_url": "./pwa.html",
+  "start_url": "./pwa.html?v=2.6.5",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
@@ -11,49 +11,14 @@
   "theme_color": "#10283b",
   "categories": ["productivity", "utilities"],
   "icons": [
-    {
-      "src": "aegis-mark-v3.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    {"src": "aegis-mark-v3.svg","sizes": "any","type": "image/svg+xml","purpose": "any"},
+    {"src": "icon-192.png","sizes": "192x192","type": "image/png","purpose": "maskable"},
+    {"src": "icon-512.png","sizes": "512x512","type": "image/png","purpose": "maskable"}
   ],
   "shortcuts": [
-    {
-      "name": "New Note",
-      "short_name": "Note",
-      "description": "Open AEGIS for a quick note entry",
-      "url": "./pwa.html?prefix=/note"
-    },
-    {
-      "name": "New Task",
-      "short_name": "Task",
-      "description": "Open AEGIS for task entry",
-      "url": "./pwa.html?prefix=/task"
-    },
-    {
-      "name": "Log Calories",
-      "short_name": "Calories",
-      "description": "Open AEGIS for food or macro logging",
-      "url": "./pwa.html?prefix=/calories"
-    },
-    {
-      "name": "Journal Entry",
-      "short_name": "Journal",
-      "description": "Open AEGIS for a journal entry",
-      "url": "./pwa.html?prefix=/journal"
-    }
+    {"name": "New Note","short_name": "Note","description": "Open AEGIS for a quick note entry","url": "./pwa.html?v=2.6.5&prefix=/note"},
+    {"name": "New Task","short_name": "Task","description": "Open AEGIS for task entry","url": "./pwa.html?v=2.6.5&prefix=/task"},
+    {"name": "Log Calories","short_name": "Calories","description": "Open AEGIS for food or macro logging","url": "./pwa.html?v=2.6.5&prefix=/calories"},
+    {"name": "Journal Entry","short_name": "Journal","description": "Open AEGIS for a journal entry","url": "./pwa.html?v=2.6.5&prefix=/journal"}
   ]
 }

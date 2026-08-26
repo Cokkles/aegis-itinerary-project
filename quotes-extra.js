@@ -1,9 +1,16 @@
-(()=>{const starts=['Build momentum before you wait for motivation','Make the next useful move visible','Protect the time that moves the mission forward','Choose progress that can survive a difficult day','Turn uncertainty into one testable action','Let discipline carry what motivation cannot','Make consistency easier than avoidance','Use small wins to create larger options','Measure what matters and ignore the noise','Leave enough margin to think clearly','Reduce friction before demanding more willpower','Treat preparation as a form of confidence','Move with purpose even when the path is incomplete','Create systems that make good choices easier','Keep your standards high and your process simple','Ask better questions before chasing faster answers','Finish the important work before polishing the trivial','Make room for recovery so effort remains sustainable','Notice what changed before deciding what it means','Prefer steady improvement over dramatic inconsistency'];const ends=['because reliable progress compounds quietly.','and let the result teach you what to do next.','so tomorrow begins with better options than today.','without confusing motion for meaningful progress.','and keep enough perspective to change course when needed.','because clarity often arrives after movement begins.','while preserving the energy required for the long game.','and make the system stronger each time you use it.','because durable results are built from repeatable actions.','and give your future self something useful to inherit.'];const cats=['Discipline','Momentum','Focus','Resilience','Systems','Learning','Perspective','Execution','Growth','Clarity'];starts.forEach((s,i)=>ends.forEach((e,j)=>Q.push([`${s}, ${e}`,`AEGIS • ${cats[(i+j)%cats.length]}`])));})();
+// AEGIS 2.6.5 supplemental runtime shims.
+// Synthetic AEGIS-authored quotes were removed. Quote rotation is five minutes.
+(()=>{
+  if(window.__AEGIS_QUOTE_INTERVAL_265__)return;
+  window.__AEGIS_QUOTE_INTERVAL_265__=true;
+  const nativeSetInterval=window.setInterval.bind(window);
+  window.setInterval=function(fn,delay,...args){
+    if(typeof fn==='function'&&fn.name==='rotateQuote'&&Number(delay)===30000)delay=5*60*1000;
+    return nativeSetInterval(fn,delay,...args);
+  };
+})();
 
-// AEGIS 2.6.3m stabilization shim.
-// auth_login is the known-good stateless token-validation path. During the
-// AUTH-1 browser stabilization window, translate legacy auth_session checks to
-// auth_login so every page uses one backend validation operation.
+// AUTH-1 compatibility: translate legacy auth_session checks to auth_login.
 (()=>{
   if(window.__AEGIS_AUTH_SESSION_COMPAT_263M__)return;
   window.__AEGIS_AUTH_SESSION_COMPAT_263M__=true;
@@ -12,34 +19,23 @@
   window.fetch=function(input,init={}){
     const url=typeof input==='string'?input:(input&&input.url)||'';
     if(!String(url).startsWith(BACKEND)||String(init.method||'GET').toUpperCase()!=='POST'||!init.body)return nativeFetch(input,init);
-    try{
-      const payload=JSON.parse(init.body);
-      if(payload&&payload.action==='auth_session'){
-        payload.action='auth_login';
-        return nativeFetch(input,{...init,body:JSON.stringify(payload)});
-      }
-    }catch{}
+    try{const payload=JSON.parse(init.body);if(payload&&payload.action==='auth_session'){payload.action='auth_login';return nativeFetch(input,{...init,body:JSON.stringify(payload)})}}catch{}
     return nativeFetch(input,init);
   };
 })();
 
-// AEGIS 2.6.3q — finite canonical dashboard-data bridge loader.
-// The legacy app still initializes from getHorizonData. Once app.js exists,
-// load the bounded bridge that re-sources briefing text from the canonical
-// getLatestHorizonBriefing endpoint and clears the obsolete 2.4.0 version alarm.
+// Canonical dashboard-data bridge loader. The runtime-ready event is authoritative;
+// finite timers remain only as a compatibility fallback for non-PWA entry points.
 (()=>{
-  if(window.__AEGIS_DATA_BRIDGE_LOADER_263Q__)return;
-  window.__AEGIS_DATA_BRIDGE_LOADER_263Q__=true;
-  function install(){
-    if(window.__AEGIS_DATA_BRIDGE_263Q__)return true;
-    if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;
-    if(document.getElementById('aegisDataBridge263q'))return true;
-    const s=document.createElement('script');
-    s.id='aegisDataBridge263q';
-    s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.3q';
-    s.async=false;
-    document.body.appendChild(s);
-    return true;
-  }
-  [250,900,2200,5000].forEach(ms=>setTimeout(install,ms));
+  if(window.__AEGIS_DATA_BRIDGE_LOADER_263Q__)return;window.__AEGIS_DATA_BRIDGE_LOADER_263Q__=true;
+  function install(){if(window.__AEGIS_DATA_BRIDGE_263Q__)return true;if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;if(document.getElementById('aegisDataBridge263q'))return true;const s=document.createElement('script');s.id='aegisDataBridge263q';s.src='dashboard-data-bridge-v2.6.3q.js?v=2.6.5';s.async=false;document.body.appendChild(s);return true}
+  window.addEventListener('aegis-stable-runtime-ready',install,{once:true});[2500,6000,12000].forEach(ms=>setTimeout(install,ms));
+})();
+
+// AEGIS 2.6.5 UX/reliability loader. Prefer the explicit post-runtime event so
+// navigation/AQ/compatibility modules finish before the dashboard is personalized.
+(()=>{
+  if(window.__AEGIS_UX_LOADER_265__)return;window.__AEGIS_UX_LOADER_265__=true;
+  function install(){if(window.__AEGIS_DASHBOARD_UX_265__)return true;if(typeof window.renderDashboard!=='function'&&typeof renderDashboard!=='function')return false;if(!document.getElementById('aegisUxCss265')){const l=document.createElement('link');l.id='aegisUxCss265';l.rel='stylesheet';l.href='dashboard-ux-v2.6.5.css?v=2.6.5';document.head.appendChild(l)}if(!document.getElementById('aegisUxJs265')){const s=document.createElement('script');s.id='aegisUxJs265';s.src='dashboard-ux-v2.6.5.js?v=2.6.5';s.async=false;document.body.appendChild(s)}return true}
+  window.addEventListener('aegis-stable-runtime-ready',install,{once:true});[3000,7000,13000].forEach(ms=>setTimeout(install,ms));
 })();

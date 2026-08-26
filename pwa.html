@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AEGIS Secure Access</title>
-<link rel="manifest" href="manifest.json?v=2.6.4">
-<link rel="icon" type="image/png" href="aegis-mark.png?v=2.6.4">
+<link rel="manifest" href="manifest.json?v=2.6.5">
+<link rel="icon" type="image/png" href="aegis-mark.png?v=2.6.5">
 <meta name="theme-color" content="#10283b">
 <style id="pwaLauncherStyle">
 html,body{margin:0;min-height:100%;background:#050b10;color:#eef8ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}.card{width:min(460px,100%);box-sizing:border-box;border:1px solid #24495c;border-radius:22px;background:#08141d;box-shadow:0 22px 70px rgba(0,0,0,.48);padding:34px;text-align:center}.mark{width:72px;height:72px;object-fit:contain;margin-bottom:14px}.card h1{font-size:28px;letter-spacing:.04em;margin:0 0 8px}.card p{color:#a8bdc9;line-height:1.5;margin:0 0 20px}.status{min-height:22px;color:#8fdcff;font-size:13px;margin:14px 0 6px}.phase{color:#668898;font-size:11px;letter-spacing:.08em;margin-bottom:14px}.error{color:#ff9b9b}.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}button,a.btn{border:1px solid #31566b;border-radius:10px;background:#153446;color:#e8f5fb;padding:10px 14px;cursor:pointer;font-weight:700;text-decoration:none}#googleButton{display:flex;justify-content:center;min-height:44px;margin-top:8px}.small{margin-top:18px!important;font-size:12px;color:#668898!important}
@@ -13,19 +13,19 @@ html,body{margin:0;min-height:100%;background:#050b10;color:#eef8ff;font-family:
 </head>
 <body>
 <div class="card">
-<img class="mark" src="aegis-mark-v3.svg?v=2.6.4" alt="AEGIS">
+<img class="mark" src="aegis-mark-v3.svg?v=2.6.5" alt="AEGIS">
 <h1>AEGIS SECURE ACCESS</h1>
 <p>Authenticate first. Dashboard services start only after the session is verified.</p>
 <div id="googleButton"></div>
 <div class="status" id="status">Starting secure session…</div>
 <div class="phase" id="phase">BOOT</div>
 <div class="actions" id="actions"></div>
-<p class="small">AEGIS PWA 2.6.4 • AUTH-1</p>
+<p class="small">AEGIS PWA 2.6.5 • AUTH-1</p>
 </div>
 <script>
 (()=>{
 'use strict';
-const RELEASE='2.6.4';
+const RELEASE='2.6.5';
 const BACKEND='https://script.google.com/macros/s/AKfycbw4Rj-zD7L9TCi3ldYobavsKDiyUJ3hLJWhOUuu5PVc83NnzKc7xTdVzNykSgt3h5zSfA/exec';
 const CLIENT_ID='441009275873-qnf9c9n1o3l9tl9c76t2821hm8tectfl.apps.googleusercontent.com';
 const TOKEN_KEY='aegis_auth_token';
@@ -55,13 +55,12 @@ async function mountDashboard(){if(runtimeStarted)return;runtimeStarted=true;set
   const styles=[...parsed.head.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute('href')).filter(Boolean);await Promise.all(styles.map(loadStyle));document.title='AEGIS Central Control';document.body.innerHTML=parsed.body.innerHTML;document.getElementById('pwaLauncherStyle')?.remove();
 
   setPhase('RUNTIME_CORE','Loading authenticated core…');
-  const coreScripts=['quotes.js','quotes-1.js','quotes-2.js','quotes-3.js','quotes-4.js','quotes-5.js','quotes-6.js','quotes-7.js','pwa-runtime-2.6.4.js','quotes-extra.js','aegis-core.js'];
+  const coreScripts=['quotes.js','quotes-1.js','quotes-2.js','quotes-3.js','quotes-4.js','quotes-5.js','quotes-6.js','quotes-7.js','quotes-curated-2.6.5.js','pwa-runtime-2.6.4.js','quotes-extra.js','aegis-core.js'];
   for(const s of coreScripts)await loadScript(s);
   if(!window.AEGIS?.Core?.Auth?.ready)throw new Error('AEGIS AUTH core did not initialize.');
   await Promise.race([AEGIS.Core.Auth.ready,new Promise((_,rej)=>setTimeout(()=>rej(new Error('AEGIS core authentication timed out.')),18000))]);
 
   setPhase('RUNTIME_APP','Loading dashboard services…');
-  // AQ-2 supersedes the older AQ-1 hotfix on this PWA path. One Ask-AEGIS handler set only.
   const appScripts=['app.js','v2.4.1.js','aq2-calendar.js','aq2-stabilization.js','model-routing-telemetry.js','compatibility-v2.6.3.js','calendar-safety-bridge-v2.6.3.js'];
   for(const s of appScripts)await loadScript(s);
   if(window.AEGIS?.Core)AEGIS.Core.BACKEND=BACKEND;
