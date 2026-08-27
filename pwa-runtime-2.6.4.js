@@ -27,11 +27,14 @@
   window.addEventListener('unhandledrejection',event=>{try{console.error('[AEGIS PWA rejection]',event.reason)}catch{}});
 
   function loadPostRuntimeBridge(src,id){if(document.getElementById(id))return;const s=document.createElement('script');s.id=id;s.src=src+'?v='+RELEASE;s.async=false;s.onerror=()=>console.error('[AEGIS PWA] failed to load '+src);document.body.appendChild(s)}
+  function loadPostRuntimeStyle(href,id){if(document.getElementById(id))return;const l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href=href+'?v='+RELEASE;l.onerror=()=>console.error('[AEGIS PWA] failed to load '+href);document.head.appendChild(l)}
 
   window.addEventListener('aegis-stable-runtime-ready',()=>{
     try{
       if(window.AEGIS?.Core){AEGIS.Core.BACKEND=BACKEND;AEGIS.Core.BUILD=RELEASE;AEGIS.Core.setState?.('pwa','ready','AEGIS PWA '+RELEASE+' • auth-first • canonical backend')}
       loadPostRuntimeBridge('horizon-sync-bridge-v2.6.4b.js','aegisHorizonSync265');
+      loadPostRuntimeStyle('aegis-ux-v2.7.css','aegisUx27Css');
+      loadPostRuntimeBridge('aegis-ux-v2.7.js','aegisUx27Js');
     }catch{}
   },{once:true});
 })();
