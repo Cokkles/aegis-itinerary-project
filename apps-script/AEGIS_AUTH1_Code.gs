@@ -68,18 +68,25 @@ function getAegisPublicAuthConfig_() {
   };
 }
 
+function getAegisAllowedGoogleClientIds_(props) {
+  var primaryClientId = String(props.getProperty("AEGIS_GOOGLE_CLIENT_ID") || "").trim();
+  var additionalClientIds = String(props.getProperty("AEGIS_GOOGLE_CLIENT_IDS") || "").split(",").map(function(x){return x.trim();}).filter(Boolean);
+  var clientIds = primaryClientId ? [primaryClientId].concat(additionalClientIds) : additionalClientIds;
+  return clientIds.filter(function(value, index, values){return values.indexOf(value) === index;});
+}
+
 function verifyAegisGoogleToken_(idToken) {
   if (!idToken) throw new Error("Authentication token missing.");
   var props = PropertiesService.getScriptProperties();
-  var clientId = String(props.getProperty("AEGIS_GOOGLE_CLIENT_ID") || "").trim();
+  var clientIds = getAegisAllowedGoogleClientIds_(props);
   var allowed = String(props.getProperty("AEGIS_AUTH_ALLOWED_EMAILS") || "").split(",").map(function(x){return x.trim().toLowerCase();}).filter(Boolean);
-  if (!clientId) throw new Error("AEGIS_GOOGLE_CLIENT_ID is not configured.");
+  if (!clientIds.length) throw new Error("No trusted Google OAuth client audience is configured.");
   if (!allowed.length) throw new Error("AEGIS_AUTH_ALLOWED_EMAILS is not configured.");
   var response = UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(idToken), {method:"get", muteHttpExceptions:true});
   if (response.getResponseCode() !== 200) throw new Error("Google identity token rejected.");
   var claims = JSON.parse(response.getContentText());
   var now = Math.floor(Date.now()/1000);
-  if (claims.aud !== clientId) throw new Error("Google identity token audience mismatch.");
+  if (clientIds.indexOf(String(claims.aud || "")) === -1) throw new Error("Google identity token audience mismatch.");
   if (String(claims.email_verified) !== "true") throw new Error("Google account email is not verified.");
   if (!claims.exp || Number(claims.exp) <= now) throw new Error("Google identity token expired.");
   var issuer = String(claims.iss || "");
