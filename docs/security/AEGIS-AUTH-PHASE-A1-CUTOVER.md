@@ -7,7 +7,8 @@ Auth: Google Identity Services + server-side allowlist
 
 ## Production state
 
-- `AEGIS_GOOGLE_CLIENT_ID` configured in Apps Script Script Properties.
+- `AEGIS_GOOGLE_CLIENT_ID` configured in Apps Script Script Properties as the PWA Web client audience.
+- `AEGIS_GOOGLE_CLIENT_IDS` optionally configures additional trusted audiences, including the GPOS Helper Desktop client, without changing the public PWA client configuration.
 - `AEGIS_AUTH_ALLOWED_EMAILS` configured privately in Apps Script Script Properties.
 - `AEGIS_AUTH_REQUIRED=true` enabled and Apps Script redeployed.
 - Public `auth_config` returns Google provider, configuration present, allowlist present, AUTH-1, backend 2.6.0.
@@ -22,7 +23,7 @@ Auth: Google Identity Services + server-side allowlist
 2. Hide Workspace-backed UI while authentication is unresolved.
 3. Load Google Identity Services.
 4. Obtain a Google ID token from the approved web OAuth client.
-5. Validate that token server-side through `auth_login` / `auth_session`.
+5. Validate that token server-side through `auth_login` / `auth_session`; AUTH-1 accepts only explicitly trusted Web or Desktop client audiences.
 6. Store the ID token in `sessionStorage` only.
 7. Translate legacy private GET calls into authenticated POST actions.
 8. Attach `auth_token` to all protected AEGIS POST operations.
