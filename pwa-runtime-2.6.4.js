@@ -35,6 +35,7 @@
       loadPostRuntimeBridge('horizon-sync-bridge-v2.6.4b.js','aegisHorizonSync265');
       loadPostRuntimeStyle('aegis-ux-v2.7.css','aegisUx27Css');
       loadPostRuntimeBridge('aegis-ux-v2.7.js','aegisUx27Js');
+      loadPostRuntimeBridge('aegis-shell-hardening-v2.7.1.js','aegisShellHardening271');
     }catch{}
   },{once:true});
 })();
