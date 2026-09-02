@@ -149,6 +149,44 @@ function handleAegisCalendarAiV2_(contents, authContext) {
   return { status:"success", contract:"AEGIS_CALENDAR_ACTION_V2", operation:op, answer:"I prepared this Calendar change, but nothing has been written yet. Review the preview and confirm if it is correct.", mutation_performed:false, confirmation_required:true, confirmation_token:pending.token, expires_at:pending.expires_at, proposal:proposal };
 }
 
+/*
+ * Exact CREATE preparation for trusted first-party forms.
+ *
+ * This intentionally bypasses Gemini intent parsing. It still uses the same
+ * bounded validation, ten-minute one-shot token, account binding, preview,
+ * and calendar_confirm mutation path as conversational AQ-2 requests.
+ */
+function handleAegisCalendarPrepareV1_(contents, authContext) {
+  var input = contents && contents.event ? contents.event : {};
+  var exact = {
+    title: input.title,
+    start: input.start,
+    end: input.end,
+    all_day: input.all_day === true,
+    location: input.location,
+    description: input.description
+  };
+  if (exact.all_day && /^\d{4}-\d{2}-\d{2}$/.test(String(exact.start || ""))) {
+    exact.start = Utilities.parseDate(String(exact.start), CONFIG.TIMEZONE, "yyyy-MM-dd").toISOString();
+  }
+  var proposal = { operation:"CREATE", event:validateAegisCalendarCreateV2_(exact) };
+  var email = authContext && authContext.user ? authContext.user.email : "";
+  var pending = issueAegisCalendarConfirmationV2_(email, proposal);
+  return {
+    status:"success",
+    contract:"AEGIS_CALENDAR_ACTION_V2",
+    operation:"CREATE",
+    answer:"I prepared this exact Calendar event, but nothing has been written yet. Review the preview and confirm if it is correct.",
+    mutation_performed:false,
+    confirmation_required:true,
+    confirmation_token:pending.token,
+    expires_at:pending.expires_at,
+    proposal:proposal,
+    parser_source:"STRUCTURED",
+    model_used:null
+  };
+}
+
 function getAegisCalendarEventByIdV2_(id) {
   if (!id) return null;
   return CalendarApp.getDefaultCalendar().getEventById(id);
@@ -194,6 +232,13 @@ function confirmAegisCalendarMutationV2_(contents, authContext) {
 
 function testAegisCalendarReadV2() {
   var result = handleAegisCalendarAiV2_({ question:"What is on my calendar tomorrow?" }, { user:{ email:"AUTH_TEST" } });
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function testAegisCalendarPrepareV1() {
+  var result = handleAegisCalendarPrepareV1_({ event:{ title:"Structured test", start:"2026-09-02T14:00:00-04:00", end:"2026-09-02T15:00:00-04:00", all_day:false, location:"Durham", description:"No Gemini parser" } }, { user:{ email:"AUTH_TEST" } });
+  if (result.status !== "success" || result.operation !== "CREATE" || result.parser_source !== "STRUCTURED" || result.model_used !== null || !result.confirmation_required || result.mutation_performed) throw new Error("calendar_prepare_v1 contract failed");
   Logger.log(JSON.stringify(result, null, 2));
   return result;
 }
