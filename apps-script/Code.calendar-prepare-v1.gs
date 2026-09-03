@@ -1844,6 +1844,7 @@ function promoteAegisFollowupTaskV265_(contents) {
     title: contents.title || "AEGIS Follow-up",
     notes: contents.notes || "",
     due: contents.due || null,
+    task_list_id: contents.task_list_id || "@default",
     local_id: null
   });
 
@@ -3512,6 +3513,7 @@ function getAegisCapabilities() {
       calendar_range_v1: true,
       followups_v1: true,
       task_action_v1: true,
+      task_crud_v1: true,
       task_workspace_v1: true,
       tasks_history_v1: true,
       task_lists_v1: true,

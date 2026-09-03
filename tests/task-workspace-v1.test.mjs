@@ -63,6 +63,7 @@ assert.equal(context.aegisScopeForAction_('get_task_workspace', ''), 'tasks.read
 assert.equal(context.aegisScopeForAction_('delete_task', ''), 'tasks.write');
 const capabilities = context.getAegisCapabilities().ux_contracts;
 assert.equal(capabilities.task_workspace_v1, true);
+assert.equal(capabilities.task_crud_v1, true);
 assert.equal(capabilities.tasks_history_v1, true);
 assert.equal(capabilities.task_lists_v1, true);
 
