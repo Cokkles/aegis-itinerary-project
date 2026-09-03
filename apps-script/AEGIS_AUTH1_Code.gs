@@ -56,22 +56,36 @@ function isAegisAuthRequired_() {
 function getAegisPublicAuthConfig_() {
   var props = PropertiesService.getScriptProperties();
   var clientId = String(props.getProperty("AEGIS_GOOGLE_CLIENT_ID") || "").trim();
+  var clientIds = getAegisAllowedGoogleClientIds_(props);
   return {
     status: "success",
     provider: "google",
     configured: !!clientId,
     client_id: clientId,
+    trusted_audience_count: clientIds.length,
+    additional_audiences_configured: clientIds.length > (clientId ? 1 : 0),
     allowlist_configured: !!String(props.getProperty("AEGIS_AUTH_ALLOWED_EMAILS") || "").trim(),
     enforcement_required: isAegisAuthRequired_(),
     auth_version: "AUTH-1",
-    backend_version: "2.6.0"
+    backend_version: "2.6.6"
   };
 }
 
+function parseAegisGoogleClientIds_(value) {
+  var text = String(value || "").trim();
+  if (!text) return [];
+  if (text.charAt(0) === "[") {
+    try {
+      var parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map(function(x){return String(x || "").trim();}).filter(Boolean);
+    } catch (ignored) {}
+  }
+  return text.split(/[\s,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+}
+
 function getAegisAllowedGoogleClientIds_(props) {
-  var primaryClientId = String(props.getProperty("AEGIS_GOOGLE_CLIENT_ID") || "").trim();
-  var additionalClientIds = String(props.getProperty("AEGIS_GOOGLE_CLIENT_IDS") || "").split(",").map(function(x){return x.trim();}).filter(Boolean);
-  var clientIds = primaryClientId ? [primaryClientId].concat(additionalClientIds) : additionalClientIds;
+  var clientIds = parseAegisGoogleClientIds_(props.getProperty("AEGIS_GOOGLE_CLIENT_ID"))
+    .concat(parseAegisGoogleClientIds_(props.getProperty("AEGIS_GOOGLE_CLIENT_IDS")));
   return clientIds.filter(function(value, index, values){return values.indexOf(value) === index;});
 }
 
@@ -104,5 +118,5 @@ function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "";
   if (action === "auth_config") return jsonOutput(getAegisPublicAuthConfig_());
   if (isAegisAuthRequired_()) return jsonOutput({status:"error",authenticated:false,code:"AEGIS_AUTH_REQUIRED",action:action,error:"Authentication is required for this AEGIS operation."});
-  return jsonOutput({status:"AUTH1_STAGING",backend_version:"2.6.0",message:"Full candidate is deployment-gated; existing 2.5.1 remains production authority until cutover."});
+  return jsonOutput({status:"AUTH1_STAGING",backend_version:"2.6.6",message:"This modular AUTH-1 reference is deployment-gated; use the consolidated candidate for cutover."});
 }

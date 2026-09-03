@@ -59,7 +59,7 @@ function testGeminiConnection() {
   return { status: "ok", model: cfg.model, reply: reply };
 }
 
-const AEGIS_BACKEND_VERSION = "2.6.5";
+const AEGIS_BACKEND_VERSION = "2.6.6";
 
 const CONFIG = {
   CALORIES_SHEET_ID:
@@ -103,9 +103,38 @@ function isAegisAuthRequired_() {
   return value === "true" || value === "1" || value === "yes" || value === "on";
 }
 
+function parseAegisGoogleClientIds_(value) {
+  var text = String(value || "").trim();
+  if (!text) return [];
+
+  if (text.charAt(0) === "[") {
+    try {
+      var parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed.map(function(x) { return String(x || "").trim(); }).filter(Boolean);
+      }
+    } catch (ignored) {
+      // Fall through so a malformed JSON-like value is still parsed as a delimiter list.
+    }
+  }
+
+  return text
+    .split(/[\s,;]+/)
+    .map(function(x) { return x.trim(); })
+    .filter(Boolean);
+}
+
+function getAegisAllowedGoogleClientIds_(props) {
+  var clientIds = parseAegisGoogleClientIds_(props.getProperty("AEGIS_GOOGLE_CLIENT_ID"))
+    .concat(parseAegisGoogleClientIds_(props.getProperty("AEGIS_GOOGLE_CLIENT_IDS")));
+  return clientIds.filter(function(value, index, values) {
+    return values.indexOf(value) === index;
+  });
+}
+
 function getAegisAuthSettings_() {
   var props = PropertiesService.getScriptProperties();
-  var clientId = String(props.getProperty("AEGIS_GOOGLE_CLIENT_ID") || "").trim();
+  var clientIds = getAegisAllowedGoogleClientIds_(props);
   var allowed = String(props.getProperty("AEGIS_AUTH_ALLOWED_EMAILS") || "")
     .split(",")
     .map(function(x) { return x.trim().toLowerCase(); })
@@ -118,11 +147,12 @@ function getAegisAuthSettings_() {
     .map(function(x) { return x.trim(); })
     .filter(Boolean);
 
-  if (!clientId) throw new Error("AEGIS_GOOGLE_CLIENT_ID is not configured.");
+  if (!clientIds.length) throw new Error("No trusted Google OAuth client audience is configured.");
   if (!allowed.length) throw new Error("AEGIS_AUTH_ALLOWED_EMAILS is not configured.");
 
   return {
-    clientId: clientId,
+    clientId: clientIds[0],
+    clientIds: clientIds,
     allowedEmails: allowed,
     scopes: scopes
   };
@@ -131,11 +161,14 @@ function getAegisAuthSettings_() {
 function getAegisPublicAuthConfig_() {
   var props = PropertiesService.getScriptProperties();
   var clientId = String(props.getProperty("AEGIS_GOOGLE_CLIENT_ID") || "").trim();
+  var clientIds = getAegisAllowedGoogleClientIds_(props);
   return {
     status: "success",
     provider: "google",
     configured: !!clientId,
     client_id: clientId,
+    trusted_audience_count: clientIds.length,
+    additional_audiences_configured: clientIds.length > (clientId ? 1 : 0),
     allowlist_configured: !!String(props.getProperty("AEGIS_AUTH_ALLOWED_EMAILS") || "").trim(),
     enforcement_required: isAegisAuthRequired_(),
     auth_version: "AUTH-1",
@@ -160,7 +193,7 @@ function verifyAegisGoogleToken_(idToken) {
   var claims = JSON.parse(response.getContentText());
   var now = Math.floor(Date.now() / 1000);
 
-  if (claims.aud !== settings.clientId) {
+  if (settings.clientIds.indexOf(String(claims.aud || "")) === -1) {
     throw new Error("Google identity token audience mismatch.");
   }
 
