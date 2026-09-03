@@ -59,7 +59,7 @@ function testGeminiConnection() {
   return { status: "ok", model: cfg.model, reply: reply };
 }
 
-const AEGIS_BACKEND_VERSION = "2.6.6";
+const AEGIS_BACKEND_VERSION = "2.7.0";
 
 const CONFIG = {
   CALORIES_SHEET_ID:
@@ -322,6 +322,9 @@ function aegisScopeForAction_(action, message) {
   if (action === "resolve_calendar_event") return "calendar.read";
   if (action === "mark_done") return "tasks.write";
   if (action === "create_task") return "tasks.write";
+  if (action === "update_task" || action === "delete_task") return "tasks.write";
+  if (action === "create_task_list" || action === "rename_task_list") return "tasks.write";
+  if (action === "restore_task") return "tasks.write";
   if (action === "promote_followup_task") return "tasks.write";
   if (action === "resolve_followup" || action === "dismiss_followup") return "spark.write";
   if (
@@ -335,6 +338,7 @@ function aegisScopeForAction_(action, message) {
   if (action === "get_latest_horizon") return "dashboard.read";
   if (action === "get_notifications") return "dashboard.read";
   if (action === "get_followups") return "dashboard.read";
+  if (action === "get_task_workspace" || action === "get_task_history") return "tasks.read";
   if (action === "get_intelligence") return "dashboard.read";
   if (action === "get_health") return "dashboard.read";
   if (action === "get_capabilities") return "dashboard.read";
@@ -576,6 +580,34 @@ function doPost(e) {
       return jsonOutput(createAegisTaskV265_(contents));
     }
 
+    if (action === "get_task_workspace") {
+      return jsonOutput(getAegisTaskWorkspaceV1_());
+    }
+
+    if (action === "get_task_history") {
+      return jsonOutput(getAegisTaskHistoryV1_(contents));
+    }
+
+    if (action === "update_task") {
+      return jsonOutput(updateAegisTaskV1_(contents));
+    }
+
+    if (action === "delete_task") {
+      return jsonOutput(deleteAegisTaskV1_(contents));
+    }
+
+    if (action === "restore_task") {
+      return jsonOutput(restoreAegisTaskV1_(contents));
+    }
+
+    if (action === "create_task_list") {
+      return jsonOutput(createAegisTaskListV1_(contents));
+    }
+
+    if (action === "rename_task_list") {
+      return jsonOutput(renameAegisTaskListV1_(contents));
+    }
+
     if (action === "resolve_followup") {
       return jsonOutput(setAegisFollowupLifecycleV265_(
         contents.followup_id,
@@ -650,7 +682,7 @@ function doPost(e) {
         try {
           Tasks.Tasks.patch(
             { status: "completed" },
-            "@default",
+            String(contents.task_list_id || "@default"),
             completedTasks[i]
           );
         } catch (err) {
@@ -1642,6 +1674,8 @@ function setAegisFollowupLifecycleV265_(followupId, state, title) {
 function createAegisTaskV265_(contents) {
   var title = String(contents && contents.title || "").trim();
   if (!title) throw new Error("Task title is required.");
+  if (title.length > 1024) throw new Error("Task title is too long.");
+  var taskListId = String(contents && contents.task_list_id || "@default").trim() || "@default";
 
   var resource = {
     title: title,
@@ -1653,19 +1687,153 @@ function createAegisTaskV265_(contents) {
     if (!isNaN(due.getTime())) resource.due = due.toISOString();
   }
 
-  var task = Tasks.Tasks.insert(resource, "@default");
+  var task = Tasks.Tasks.insert(resource, taskListId);
 
   return {
     status: "success",
     contract: "AEGIS_TASK_ACTION_V1",
     task: {
       id: task.id,
+      task_list_id: taskListId,
       title: task.title,
       status: task.status,
       due: task.due || null
     },
     local_id: contents && contents.local_id || null
   };
+}
+
+function listAegisTaskListsV1_() {
+  var items = [];
+  var pageToken = null;
+  var pages = 0;
+  do {
+    var options = { maxResults: 100 };
+    if (pageToken) options.pageToken = pageToken;
+    var page = Tasks.Tasklists.list(options);
+    (page.items || []).forEach(function(item) {
+      if (items.length < 25) items.push({ id: item.id, title: item.title || "Untitled list" });
+    });
+    pageToken = page.nextPageToken || null;
+    pages++;
+  } while (pageToken && pages < 3 && items.length < 25);
+  return items;
+}
+
+function serializeAegisTaskV1_(task, list) {
+  return {
+    id: task.id,
+    task_list_id: list.id,
+    task_list_title: list.title,
+    title: task.title || "Untitled Task",
+    notes: task.notes || "",
+    due: task.due || null,
+    updated: task.updated || null,
+    completed: task.completed || null,
+    status: task.status || "needsAction"
+  };
+}
+
+function getAegisTaskWorkspaceV1_() {
+  var lists = listAegisTaskListsV1_();
+  var tasks = [];
+  lists.forEach(function(list) {
+    var page = Tasks.Tasks.list(list.id, {
+      maxResults: 100,
+      showCompleted: false,
+      showHidden: false
+    });
+    (page.items || []).forEach(function(task) {
+      if (!task.deleted && task.status !== "completed") tasks.push(serializeAegisTaskV1_(task, list));
+    });
+  });
+  return {
+    status: "success",
+    contract: "AEGIS_TASK_WORKSPACE_V1",
+    generated_at: new Date().toISOString(),
+    lists: lists,
+    tasks: tasks,
+    active_count: tasks.length
+  };
+}
+
+function getAegisTaskHistoryV1_(contents) {
+  var days = Math.max(1, Math.min(30, Number(contents && contents.days) || 7));
+  var requestedListId = String(contents && contents.task_list_id || "").trim();
+  var cutoff = new Date(Date.now() - days * 86400000);
+  var lists = listAegisTaskListsV1_().filter(function(list) {
+    return !requestedListId || list.id === requestedListId;
+  });
+  var items = [];
+  lists.forEach(function(list) {
+    var page = Tasks.Tasks.list(list.id, {
+      maxResults: 100,
+      showCompleted: true,
+      showHidden: true,
+      completedMin: cutoff.toISOString()
+    });
+    (page.items || []).forEach(function(task) {
+      if (!task.deleted && task.status === "completed" && task.completed && new Date(task.completed) >= cutoff) {
+        items.push(serializeAegisTaskV1_(task, list));
+      }
+    });
+  });
+  items.sort(function(a, b) { return String(b.completed).localeCompare(String(a.completed)); });
+  return {
+    status: "success",
+    contract: "AEGIS_TASK_HISTORY_V1",
+    days: days,
+    generated_at: new Date().toISOString(),
+    items: items.slice(0, 200)
+  };
+}
+
+function updateAegisTaskV1_(contents) {
+  var taskId = String(contents && contents.task_id || "").trim();
+  var taskListId = String(contents && contents.task_list_id || "").trim();
+  var title = String(contents && contents.title || "").trim();
+  if (!taskId || !taskListId || !title) throw new Error("Task list, task ID, and title are required.");
+  if (title.length > 1024) throw new Error("Task title is too long.");
+  var resource = { title: title, notes: String(contents.notes || "").trim() };
+  if (contents.clear_due === true) resource.due = null;
+  else if (contents.due) {
+    var due = new Date(contents.due);
+    if (isNaN(due.getTime())) throw new Error("Task due date is invalid.");
+    resource.due = due.toISOString();
+  }
+  var task = Tasks.Tasks.patch(resource, taskListId, taskId);
+  return { status: "success", contract: "AEGIS_TASK_ACTION_V1", operation: "UPDATE", task: serializeAegisTaskV1_(task, { id: taskListId, title: "" }) };
+}
+
+function deleteAegisTaskV1_(contents) {
+  var taskId = String(contents && contents.task_id || "").trim();
+  var taskListId = String(contents && contents.task_list_id || "").trim();
+  if (!taskId || !taskListId) throw new Error("Task list and task ID are required.");
+  Tasks.Tasks.remove(taskListId, taskId);
+  return { status: "success", contract: "AEGIS_TASK_ACTION_V1", operation: "DELETE", task_id: taskId, task_list_id: taskListId };
+}
+
+function restoreAegisTaskV1_(contents) {
+  var taskId = String(contents && contents.task_id || "").trim();
+  var taskListId = String(contents && contents.task_list_id || "").trim();
+  if (!taskId || !taskListId) throw new Error("Task list and task ID are required.");
+  var task = Tasks.Tasks.patch({ status: "needsAction" }, taskListId, taskId);
+  return { status: "success", contract: "AEGIS_TASK_ACTION_V1", operation: "RESTORE", task: serializeAegisTaskV1_(task, { id: taskListId, title: "" }) };
+}
+
+function createAegisTaskListV1_(contents) {
+  var title = String(contents && contents.title || "").trim();
+  if (!title || title.length > 100) throw new Error("A task-list title between 1 and 100 characters is required.");
+  var list = Tasks.Tasklists.insert({ title: title });
+  return { status: "success", contract: "AEGIS_TASK_LISTS_V1", operation: "CREATE", task_list: { id: list.id, title: list.title } };
+}
+
+function renameAegisTaskListV1_(contents) {
+  var taskListId = String(contents && contents.task_list_id || "").trim();
+  var title = String(contents && contents.title || "").trim();
+  if (!taskListId || !title || title.length > 100) throw new Error("Task-list ID and a title between 1 and 100 characters are required.");
+  var list = Tasks.Tasklists.patch({ title: title }, taskListId);
+  return { status: "success", contract: "AEGIS_TASK_LISTS_V1", operation: "RENAME", task_list: { id: list.id, title: list.title } };
 }
 
 function promoteAegisFollowupTaskV265_(contents) {
@@ -3344,6 +3512,9 @@ function getAegisCapabilities() {
       calendar_range_v1: true,
       followups_v1: true,
       task_action_v1: true,
+      task_workspace_v1: true,
+      tasks_history_v1: true,
+      task_lists_v1: true,
       rss_health_threshold_v1: true,
       calendar_prepare_v1: true
     },
